@@ -1006,7 +1006,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                     <div style={{fontWeight:800,fontSize:14}}>{cr.nom}</div>
                                     <div style={{fontSize:11,color:C.mu}}>{cr.proveedor} · {fD(cr.fecha)}</div>
                                   </div>
-                                  <Chip col={C.re} ch="PENDIENTE"/>
+                                 <Chip col={C.re} ch="PENDIENTE"/>
+                                  <Btn sm col={C.re} ch="🗑" onClick={()=>{sCreds(creds.filter(x=>x.id!==cr.id));toast2('Factura eliminada','info');}}/>
                                 </div>
                                 <div style={{background:C.su,borderRadius:20,height:8,marginBottom:8,overflow:'hidden'}}>
                                   <div style={{background:C.gr,height:'100%',width:pct+'%',borderRadius:20}}/>
