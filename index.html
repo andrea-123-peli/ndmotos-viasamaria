@@ -1018,10 +1018,11 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                 <div style={{display:'flex',gap:8,alignItems:'center'}}>
                                   <Inp v={crPagoId===cr.id?crPagoMonto:''} s={v=>{setCrPagoId(cr.id);setCrPagoMonto(v);}}
                                     type="number" ph="Monto del abono..." style={{flex:1}}/>
-                                  <Btn sm col={C.gr} onClick={()=>{
+                                <Btn sm col={C.gr} onClick={()=>{
                                     const abono=parseFloat(crPagoMonto)||0;
                                     if(!abono) return toast2('Ingresa el monto','err');
                                     sCreds(creds.map(x=>x.id===cr.id?{...x,pagado:Math.min(x.pagado+abono,x.totalDeuda),pagos:[...x.pagos,{fecha:hoy(),monto:abono}]}:x));
+                                    sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Abono Proveedor',desc:'Abono a '+cr.proveedor+' — '+cr.nom,monto:abono,pago:'Efectivo'}]);
                                     setCrPagoMonto('');setCrPagoId('');
                                     toast2('Abono de '+fm(abono)+' registrado','ok');
                                   }} ch="💰 Abonar"/>
