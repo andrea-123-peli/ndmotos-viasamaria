@@ -964,9 +964,11 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                             crItems.forEach(it=>newInv.push({id:it.ref,cat:it.cat,nom:it.nom,pc:it.pc,pv:it.pv,stock:it.cant}));
                             sInv(newInv);
                             const nom=crItems.length===1?crItems[0].nom:crItems.length+' productos';
+                            const totalFact=parseFloat(crTotal)||crItems.reduce((a,b)=>a+b.pc*b.cant,0);
                             sCreds([...rCreds.current,{id:uid(),fecha:crFecha||hoy(),proveedor:crProv.trim(),
                               items:crItems,nom,cant:crItems.reduce((a,b)=>a+b.cant,0),
-                              totalDeuda:total,pagado:0,pagos:[],activo:true}]);
+                              totalDeuda:totalFact,pagado:0,pagos:[],activo:true}]);
+                            sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Compra Credito',desc:nom+' — '+crProv.trim(),monto:totalFact,pago:'Credito proveedor'}]);
                             setCrItems([]);setCrTotal('');setCrPrv('');setCrFecha('');
                             toast2('Factura de '+crItems.length+' producto(s) registrada. Ya aparecen en inventario','ok');
                           }} col={C.gr} full ch={'✅ Guardar Factura — '+fm(parseFloat(crTotal)||crItems.reduce((a,b)=>a+b.pc*b.cant,0))}/>
