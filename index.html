@@ -618,7 +618,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
           <div style={{fontSize:20,fontWeight:900,color:C.or,letterSpacing:2}}>ND <span style={{color:C.tx}}>MOTOS</span></div>
         </div>
         <Btn sm col="ghost" onClick={()=>setShowBackup(true)} ch="💾 Backup"/>
-      <Btn sm col="ghost" onClick={()=>window.location.reload()} ch="🔄"/>
+    <Btn sm col="ghost" onClick={()=>{localStorage.removeItem('ndm_all_local');window.location.reload();}} ch="🔄"/>
       </div>
 
       {/* NAVEGACION */}
