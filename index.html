@@ -298,12 +298,7 @@ function App() {
           set('creds',rCreds,setCreds);
         }
       }catch(e){}
-      if(!done){done=true;clearTimeout(to);setReady(true);}
-    })();
-    return ()=>clearTimeout(to);
-  },[]);
-const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
-  
+    const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await new Promise(r=>setTimeout(r,300));await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
   const sInv    = d => { rInv.current=d;    setInv(d);    guardar({inv:d});    };
   const sVen    = d => { rVen.current=d;    setVen(d);    guardar({ven:d});    };
   const sGas    = d => { rGas.current=d;    setGas(d);    guardar({gas:d});    };
