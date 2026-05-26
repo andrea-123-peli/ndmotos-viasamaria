@@ -330,7 +330,34 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
       herr:rHerr.current, emps:rEmps.current, empProd:rEmpProd.current,
       lavEmps:rLavEmps.current, lavProd:rLavProd.current, lavPct:rLavPct.current,
       creds:rCreds.current
+    }); const exportarExcel = (de, ha) => {
+    const filtrar = arr => arr.filter(x => {
+      const d = (x.fecha||'').slice(0,10);
+      return (!de||d>=de) && (!ha||d<=ha);
     });
+    const ven2 = filtrar(rVen.current);
+    const gas2 = filtrar(rGas.current);
+    const com2 = filtrar(rCom.current);
+    const emp2 = filtrar(rEmp.current);
+    let csv = 'VENTAS\nFecha,Cliente,Descripcion,Total,Ganancia,Pago\n';
+    ven2.forEach(v=>{ csv+=`${v.fecha.slice(0,10)},${v.cliente||''},${(v.desc||'').replace(/,/g,' ')},${v.total},${v.ganancia},${v.pago}\n`; });
+    csv += '\nGASTOS\nFecha,Tipo,Descripcion,Monto,Pago\n';
+    gas2.forEach(g=>{ csv+=`${g.fecha.slice(0,10)},${g.tipo||''},${(g.desc||'').replace(/,/g,' ')},${g.monto},${g.pago}\n`; });
+    csv += '\nCOMPRAS\nFecha,Proveedor,Descripcion,Total,Pago\n';
+    com2.forEach(c=>{ csv+=`${c.fecha.slice(0,10)},${c.proveedor||''},${(c.desc||'').replace(/,/g,' ')},${c.total},${c.pago}\n`; });
+    csv += '\nNOMINA\nFecha,Empleado,Cargo,Periodo,Monto,Pago\n';
+    emp2.forEach(e=>{ csv+=`${e.fecha.slice(0,10)},${e.nombre||''},${e.cargo||''},${e.periodo||''},${e.monto},${e.pago}\n`; });
+    const tvT=ven2.reduce((a,b)=>a+b.total,0);
+    const tvG=ven2.reduce((a,b)=>a+b.ganancia,0);
+    const tGa=gas2.reduce((a,b)=>a+b.monto,0);
+    csv += `\nRESUMEN\nVentas Totales,${tvT}\nGanancia Bruta,${tvG}\nGastos Totales,${tGa}\nUtilidad Neta,${tvG-tGa}\n`;
+    const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download='ndmotos_contabilidad_'+(de||'inicio')+'_al_'+(ha||'hoy')+'.csv'; a.click();
+    URL.revokeObjectURL(url);
+    toast2('Archivo exportado. Ábrelo en Excel','ok');
+  };
     const blob = new Blob([data], {type:'text/plain'});
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
