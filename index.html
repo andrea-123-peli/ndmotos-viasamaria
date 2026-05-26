@@ -321,7 +321,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const sCreds  = d => { rCreds.current=d;  setCreds(d);  guardar({creds:d});  };
 
   const [showBackup,setShowBackup] = useState(false);
-  const [importTxt,setImportTxt]   = useState('');
+  const [importTxt,setImportTxt]   = useState(''); const [exDe,setExDe] = useState('');
+const [exHa,setExHa] = useState('');
 
   const exportarDatos = () => {
     const data = JSON.stringify({
