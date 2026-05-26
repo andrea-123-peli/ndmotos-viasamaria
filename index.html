@@ -2177,8 +2177,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
           <div style={{marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:C.tx,marginBottom:8}}>📤 Exportar — Guardar mis datos</div>
             <div style={{fontSize:12,color:C.mu,marginBottom:10}}>Descarga un archivo con todos tus datos actuales. Guárdalo en tu teléfono o en WhatsApp contigo mismo.</div>
-            <Btn onClick={exportarDatos} col={C.gr} full ch="📥 Descargar archivo de backup"/>
-          </div>
+           <Btn onClick={exportarDatos} col={C.gr} full ch="📥 Descargar archivo de backup"/>           </div>           <div style={{height:1,background:C.bo,margin:'16px 0'}}/>           <div>             <div style={{fontSize:13,fontWeight:700,color:C.tx,marginBottom:8}}>📊 Exportar a Excel para contabilidad</div>             <div style={{fontSize:12,color:C.mu,marginBottom:10}}>Exporta ventas, gastos, compras y nómina en un período específico.</div>             <div style={{display:'flex',gap:10,marginBottom:10,flexWrap:'wrap'}}>               <div style={{flex:1}}><div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Desde</div><input type="date" id="exDe" style={{width:'100%',background:C.su,border:'1px solid '+C.bo,borderRadius:8,color:C.tx,fontSize:14,padding:'8px 12px',outline:'none'}}/></div>               <div style={{flex:1}}><div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Hasta</div><input type="date" id="exHa" style={{width:'100%',background:C.su,border:'1px solid '+C.bo,borderRadius:8,color:C.tx,fontSize:14,padding:'8px 12px',outline:'none'}}/></div>             </div>             <Btn onClick={()=>{const de=document.getElementById('exDe').value;const ha=document.getElementById('exHa').value;exportarExcel(de,ha);}} col={C.bl} full ch="📊 Exportar a Excel"/>           </div>
 
           <div style={{height:1,background:C.bo,marginBottom:20}}/>
 
