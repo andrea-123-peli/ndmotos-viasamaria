@@ -272,11 +272,11 @@ function App() {
       try{
         let rawData = null;
         try {
-      const resp=await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1&select=data',{headers:{'apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc'}}); const rows=await resp.json(); if(rows&&rows.length>0&&rows[0].data&&Object.keys(rows[0].data).length>0){rawData=JSON.stringify(rows[0].data);}
+      const resp=await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede&select=data',{headers:{'apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc'}}); const rows=await resp.json(); if(rows&&rows.length>0&&rows[0].data&&Object.keys(rows[0].data).length>0){rawData=JSON.stringify(rows[0].data);}
         } catch(e){}
         if(!rawData) {
           try { rawData = localStorage.getItem('ndm_all_local'); } catch(e){}
-        }
+        }1
         if(rawData){
           const d=JSON.parse(rawData);
           const set=(key,ref,setter,convert)=>{
@@ -331,12 +331,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
       herr:rHerr.current, emps:rEmps.current, empProd:rEmpProd.current,
       lavEmps:rLavEmps.current, lavProd:rLavProd.current, lavPct:rLavPct.current,
       creds:rCreds.current
-    });
-    const bk=new Blob([data],{type:'text/plain'});const bkUrl=URL.createObjectURL(bk);const bkA=document.createElement('a');bkA.href=bkUrl;bkA.download='ndmotos_backup_'+hoy()+'.json';bkA.click();URL.revokeObjectURL(bkUrl);
-    toast2('Datos exportados. Guarda el archivo en un lugar seguro','ok');
-  };
-
-  const exportarExcel = (de, ha) => {
+    }); const exportarExcel = (de, ha) => {
     const filtrar = arr => arr.filter(x => {
       const d = (x.fecha||'').slice(0,10);
       return (!de||d>=de) && (!ha||d<=ha);
