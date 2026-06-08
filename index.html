@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -41,7 +40,18 @@ const NM = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
 const CATS = ['Aceites','Filtros','Frenos','Transmision','Electricidad','Carburacion','Suspension','Llantas','Motor','Rodamientos','Escape','Carroceria','Lubricantes','Accesorios','Otros','-- Nueva categoria --'];
 const PAGOS = ['Efectivo','Transferencia','Nequi','Daviplata','Fiado','Tarjeta'];
 const SERVT = ['Cambio de aceite','Mantenimiento general','Revision de frenos','Ajuste de carburador','Cambio de cadena','Revision electrica','Cambio de llantas','Lavado de moto','Diagnostico','Servicio personalizado'];
-const BASE_INV = [];
+const BASE_INV = [
+  {id:'R001',cat:'Aceites',nom:'Aceite Motor 4T 1L Castrol',pc:18000,pv:28000,stock:15},
+  {id:'R002',cat:'Aceites',nom:'Aceite Motor 4T 1L Mobil',pc:16000,pv:25000,stock:20},
+  {id:'R003',cat:'Aceites',nom:'Aceite Motor 2T 1L',pc:12000,pv:20000,stock:18},
+  {id:'R004',cat:'Filtros',nom:'Filtro Aceite Universal',pc:8000,pv:14000,stock:25},
+  {id:'R005',cat:'Frenos',nom:'Pastillas Freno Delantero',pc:15000,pv:26000,stock:12},
+  {id:'R006',cat:'Transmision',nom:'Cadena 428 x 120',pc:22000,pv:38000,stock:8},
+  {id:'R007',cat:'Electricidad',nom:'Bujia NGK CR7HSA',pc:8000,pv:14000,stock:30},
+  {id:'R008',cat:'Llantas',nom:'Llanta Delantera 2.75-17',pc:55000,pv:92000,stock:4},
+  {id:'R009',cat:'Llantas',nom:'Llanta Trasera 3.00-17',pc:65000,pv:108000,stock:3},
+  {id:'R010',cat:'Suspension',nom:'Amortiguador Trasero par',pc:85000,pv:145000,stock:3},
+];
 
 // ── COLORES ────────────────────────────────────────────
 const C = {
@@ -272,8 +282,10 @@ function App() {
       try{
         let rawData = null;
         try {
-      const resp=await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1&select=data',{headers:{'apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc'}}); const rows=await resp.json(); if(rows&&rows.length>0&&rows[0].data&&Object.keys(rows[0].data).length>0){rawData=JSON.stringify(rows[0].data);}
+          const r=await window.storage.get('ndm_all');
+          if(r&&r.value) rawData = r.value;
         } catch(e){}
+        // Si window.storage no tiene datos, intentar localStorage
         if(!rawData) {
           try { rawData = localStorage.getItem('ndm_all_local'); } catch(e){}
         }
@@ -303,8 +315,22 @@ function App() {
     })();
     return ()=>clearTimeout(to);
   },[]);
-const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
-  
+
+  const guardar = patch => {
+    const data = {
+      inv:rInv.current, ven:rVen.current, gas:rGas.current, com:rCom.current,
+      fia:rFia.current, emp:rEmp.current, cli:rCli.current, meta:rMeta.current,
+      herr:rHerr.current, emps:rEmps.current, empProd:rEmpProd.current,
+      lavEmps:rLavEmps.current, lavProd:rLavProd.current, lavPct:rLavPct.current,
+      creds:rCreds.current, ...(patch||{})
+    };
+    const json = JSON.stringify(data);
+    // Guardar en window.storage (artifact)
+    window.storage?.set('ndm_all', json)?.catch(()=>{});
+    // Guardar en localStorage como respaldo (persiste en el navegador)
+    try { localStorage.setItem('ndm_all_local', json); } catch(e){}
+  };
+
   const sInv    = d => { rInv.current=d;    setInv(d);    guardar({inv:d});    };
   const sVen    = d => { rVen.current=d;    setVen(d);    guardar({ven:d});    };
   const sGas    = d => { rGas.current=d;    setGas(d);    guardar({gas:d});    };
@@ -332,36 +358,6 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
       lavEmps:rLavEmps.current, lavProd:rLavProd.current, lavPct:rLavPct.current,
       creds:rCreds.current
     });
-  };
-
-  const exportarExcel = (de, ha) => {
-    const filtrar = arr => arr.filter(x => {
-      const d = (x.fecha||'').slice(0,10);
-      return (!de||d>=de) && (!ha||d<=ha);
-    });
-    const ven2 = filtrar(rVen.current);
-    const gas2 = filtrar(rGas.current);
-    const com2 = filtrar(rCom.current);
-    const emp2 = filtrar(rEmp.current);
-    let csv = 'VENTAS\nFecha,Cliente,Descripcion,Total,Ganancia,Pago\n';
-    ven2.forEach(v=>{ csv+=`${v.fecha.slice(0,10)},${v.cliente||''},${(v.desc||'').replace(/,/g,' ')},${v.total},${v.ganancia},${v.pago}\n`; });
-    csv += '\nGASTOS\nFecha,Tipo,Descripcion,Monto,Pago\n';
-    gas2.forEach(g=>{ csv+=`${g.fecha.slice(0,10)},${g.tipo||''},${(g.desc||'').replace(/,/g,' ')},${g.monto},${g.pago}\n`; });
-    csv += '\nCOMPRAS\nFecha,Proveedor,Descripcion,Total,Pago\n';
-    com2.forEach(c=>{ csv+=`${c.fecha.slice(0,10)},${c.proveedor||''},${(c.desc||'').replace(/,/g,' ')},${c.total},${c.pago}\n`; });
-    csv += '\nNOMINA\nFecha,Empleado,Cargo,Periodo,Monto,Pago\n';
-    emp2.forEach(e=>{ csv+=`${e.fecha.slice(0,10)},${e.nombre||''},${e.cargo||''},${e.periodo||''},${e.monto},${e.pago}\n`; });
-    const tvT=ven2.reduce((a,b)=>a+b.total,0);
-    const tvG=ven2.reduce((a,b)=>a+b.ganancia,0);
-    const tGa=gas2.reduce((a,b)=>a+b.monto,0);
-    csv += `\nRESUMEN\nVentas Totales,${tvT}\nGanancia Bruta,${tvG}\nGastos Totales,${tGa}\nUtilidad Neta,${tvG-tGa}\n`;
-    const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href=url; a.download='ndmotos_contabilidad_'+(de||'inicio')+'_al_'+(ha||'hoy')+'.csv'; a.click();
-    URL.revokeObjectURL(url);
-    toast2('Archivo exportado. Ábrelo en Excel','ok');
-  };
     const blob = new Blob([data], {type:'text/plain'});
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -649,7 +645,6 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
           <div style={{fontSize:20,fontWeight:900,color:C.or,letterSpacing:2}}>ND <span style={{color:C.tx}}>MOTOS</span></div>
         </div>
         <Btn sm col="ghost" onClick={()=>setShowBackup(true)} ch="💾 Backup"/>
-    <Btn sm col="ghost" onClick={()=>{localStorage.removeItem('ndm_all_local');window.location.reload();}} ch="🔄"/>
       </div>
 
       {/* NAVEGACION */}
@@ -742,7 +737,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD style={{fontSize:12}} ch={(x.r.desc||'').slice(0,35)}/>
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
                           <TD style={{color:C.gr,fontWeight:700}} ch={x.r.ganancia>0?fm(x.r.ganancia):'-'}/>
-                          <TD ch={x.t==='ven'&&<Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;borrarVenta(x.r.id);}} ch="🗑"/>}/>
+                          <TD ch={x.t==='ven'&&<Btn sm col={C.re} onClick={()=>borrarVenta(x.r.id)} ch="🗑"/>}/>
                         </tr>
                       ))}
                       {!ven.length&&!gas.length&&<tr><td colSpan={6} style={{textAlign:'center',padding:28,color:C.mu}}>Sin transacciones aun</td></tr>}
@@ -852,7 +847,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <TD style={{color:C.mu,fontSize:12}} ch={fT(v.fecha)}/>
                               <TD style={{fontSize:12}} ch={v.desc.slice(0,30)}/>
                               <TD style={{color:C.gr,fontWeight:700}} ch={fm(v.total)}/>
-                              <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;borrarVenta(v.id);}} ch="🗑"/>}/>
+                              <TD ch={<Btn sm col={C.re} onClick={()=>borrarVenta(v.id)} ch="🗑"/>}/>
                             </tr>
                           ))}
                           {!vHoy.length&&<tr><td colSpan={4} style={{textAlign:'center',padding:20,color:C.mu}}>Sin ventas hoy</td></tr>}
@@ -917,7 +912,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                 <TD style={{fontSize:12}} ch={c2.desc}/>
                                 <TD ch={c2.cant}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(c2.total)}/>
-                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sCom(com.filter(x=>x.id!==c2.id));}} ch="🗑"/>}/>
+                                <TD ch={<Btn sm col={C.re} onClick={()=>sCom(com.filter(x=>x.id!==c2.id))} ch="🗑"/>}/>
                               </tr>
                             ))}
                             {!com.length&&<tr><td colSpan={5} style={{textAlign:'center',padding:20,color:C.mu}}>Sin compras</td></tr>}
@@ -996,11 +991,9 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                             crItems.forEach(it=>newInv.push({id:it.ref,cat:it.cat,nom:it.nom,pc:it.pc,pv:it.pv,stock:it.cant}));
                             sInv(newInv);
                             const nom=crItems.length===1?crItems[0].nom:crItems.length+' productos';
-                            const totalFact=parseFloat(crTotal)||crItems.reduce((a,b)=>a+b.pc*b.cant,0);
                             sCreds([...rCreds.current,{id:uid(),fecha:crFecha||hoy(),proveedor:crProv.trim(),
                               items:crItems,nom,cant:crItems.reduce((a,b)=>a+b.cant,0),
-                              totalDeuda:totalFact,pagado:0,pagos:[],activo:true}]);
-                            
+                              totalDeuda:total,pagado:0,pagos:[],activo:true}]);
                             setCrItems([]);setCrTotal('');setCrPrv('');setCrFecha('');
                             toast2('Factura de '+crItems.length+' producto(s) registrada. Ya aparecen en inventario','ok');
                           }} col={C.gr} full ch={'✅ Guardar Factura — '+fm(parseFloat(crTotal)||crItems.reduce((a,b)=>a+b.pc*b.cant,0))}/>
@@ -1037,8 +1030,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                     <div style={{fontWeight:800,fontSize:14}}>{cr.nom}</div>
                                     <div style={{fontSize:11,color:C.mu}}>{cr.proveedor} · {fD(cr.fecha)}</div>
                                   </div>
-                                 <Chip col={C.re} ch="PENDIENTE"/>
-                                  <Btn sm col={C.re} ch="🗑" onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sCreds(creds.filter(x=>x.id!==cr.id));toast2('Factura eliminada','info');}}/>
+                                  <Chip col={C.re} ch="PENDIENTE"/>
                                 </div>
                                 <div style={{background:C.su,borderRadius:20,height:8,marginBottom:8,overflow:'hidden'}}>
                                   <div style={{background:C.gr,height:'100%',width:pct+'%',borderRadius:20}}/>
@@ -1050,11 +1042,10 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                 <div style={{display:'flex',gap:8,alignItems:'center'}}>
                                   <Inp v={crPagoId===cr.id?crPagoMonto:''} s={v=>{setCrPagoId(cr.id);setCrPagoMonto(v);}}
                                     type="number" ph="Monto del abono..." style={{flex:1}}/>
-                                <Btn sm col={C.gr} onClick={()=>{
+                                  <Btn sm col={C.gr} onClick={()=>{
                                     const abono=parseFloat(crPagoMonto)||0;
                                     if(!abono) return toast2('Ingresa el monto','err');
                                     sCreds(creds.map(x=>x.id===cr.id?{...x,pagado:Math.min(x.pagado+abono,x.totalDeuda),pagos:[...x.pagos,{fecha:hoy(),monto:abono}]}:x));
-                                    sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Abono Proveedor',desc:'Abono a '+cr.proveedor+' — '+cr.nom,monto:abono,pago:'Efectivo'}]);
                                     setCrPagoMonto('');setCrPagoId('');
                                     toast2('Abono de '+fm(abono)+' registrado','ok');
                                   }} ch="💰 Abonar"/>
@@ -1144,7 +1135,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <TD ch={<Chip col={C.re} ch={g2.tipo}/>}/>
                               <TD style={{fontSize:12}} ch={g2.desc}/>
                               <TD style={{color:C.re,fontWeight:700}} ch={fm(g2.monto)}/>
-                              <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sGas(gas.filter(x=>x.id!==g2.id));}} ch="🗑"/>}/>
+                              <TD ch={<Btn sm col={C.re} onClick={()=>sGas(gas.filter(x=>x.id!==g2.id))} ch="🗑"/>}/>
                             </tr>
                           ))}
                           {!gas.length&&<tr><td colSpan={5} style={{textAlign:'center',padding:20,color:C.mu}}>Sin gastos</td></tr>}
@@ -1163,7 +1154,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:C.mu,marginBottom:10}}>Pagos a Empleados</div>
                     <div style={{overflowX:'auto'}}>
                       <table style={{width:'100%',borderCollapse:'collapse'}}>
-                      <thead><tr><TH ch="Fecha"/><TH ch="Empleado"/><TH ch="Cargo"/><TH ch="Periodo"/><TH ch="Monto"/><TH ch=""/></tr></thead>
+                        <thead><tr><TH ch="Fecha"/><TH ch="Empleado"/><TH ch="Cargo"/><TH ch="Periodo"/><TH ch="Monto"/></tr></thead>
                         <tbody>
                           {emp.slice(-15).reverse().map((e2,i)=>(
                             <tr key={i} style={{borderBottom:`1px solid ${C.bo}`}}>
@@ -1171,7 +1162,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <TD style={{fontWeight:600}} ch={e2.nombre}/>
                               <TD ch={<Chip col={C.bl} ch={e2.cargo}/>}/>
                               <TD style={{fontSize:12,color:C.mu}} ch={e2.periodo}/>
-                             <TD style={{color:C.bl,fontWeight:700}} ch={fm(e2.monto)}/><TD ch={<Btn col={C.re} ch="🗑" onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sEmp(emp.filter(x=>x.id!==e2.id));}}/>}/>
+                              <TD style={{color:C.bl,fontWeight:700}} ch={fm(e2.monto)}/>
                             </tr>
                           ))}
                           {!emp.length&&<tr><td colSpan={5} style={{textAlign:'center',padding:20,color:C.mu}}>Sin pagos</td></tr>}
@@ -1248,7 +1239,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                             <TD style={{fontSize:20,fontWeight:800,color:ag?C.re:bj?C.ye:C.gr}} ch={p.stock}/>
                             <TD ch={<Chip col={ag?C.re:bj?C.ye:C.gr} ch={ag?'AGOTADO':bj?'BAJO':'OK'}/>}/>
                             <TD ch={<Btn sm col={C.bl} onClick={()=>setEP({...p,orig:p.id})} ch="✏️"/>}/>
-                            <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sInv(inv.filter(x=>x.id!==p.id));toast2('Producto eliminado','info');}} ch="🗑"/>}/>
+                            <TD ch={<Btn sm col={C.re} onClick={()=>{sInv(inv.filter(x=>x.id!==p.id));toast2('Producto eliminado','info');}} ch="🗑"/>}/>
                           </tr>
                         );
                       })}
@@ -1309,7 +1300,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD ch={
                             <div style={{display:'flex',gap:4}}>
                               <Btn sm col={C.mu} onClick={()=>sHerr(herr.map((x,j)=>j===i?{...x,activo:!x.activo}:x))} ch={h.activo===false?'↩ Activar':'Baja'}/>
-                              <Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sHerr(herr.filter((_,j)=>j!==i));toast2('Eliminado','info');}} ch="🗑"/>
+                              <Btn sm col={C.re} onClick={()=>{sHerr(herr.filter((_,j)=>j!==i));toast2('Eliminado','info');}} ch="🗑"/>
                             </div>
                           }/>
                         </tr>
@@ -1417,7 +1408,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <div style={{marginTop:10,display:'flex',gap:8}}>
                                 <Btn sm col={C.bl} style={{flex:1,justifyContent:'center'}} onClick={()=>setVerCl(c)} ch="📋 Historial"/>
                                 <Btn sm col="ghost" onClick={()=>setECl({...c})} ch="✏️"/>
-                                <Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sCli(cli.filter(x=>x.id!==c.id));toast2('Cliente eliminado','info');}} ch="🗑"/>
+                                <Btn sm col={C.re} onClick={()=>{sCli(cli.filter(x=>x.id!==c.id));toast2('Cliente eliminado','info');}} ch="🗑"/>
                               </div>
                             </div>
                           );
@@ -1466,7 +1457,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                   <TD style={{fontSize:12}} ch={f2.desc||'-'}/>
                                   <TD style={{color:C.pu,fontWeight:700}} ch={fm(f2.valor)}/>
                                   <TD style={{fontSize:12,color:vencido?C.re:C.mu}} ch={(f2.vence?fD(f2.vence):'Sin fecha')+(vencido?' ⚠':'')}/>
-                                 <TD ch={<div style={{display:'flex',gap:4}}><Btn sm col={C.gr} onClick={()=>sFia(fia.map(x=>x.id===f2.id?{...x,pagado:true}:x))} ch="✓ Pago"/><Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sFia(fia.filter(x=>x.id!==f2.id));}} ch="🗑"/></div>}/>                                 </tr>
+                                  <TD ch={<Btn sm col={C.gr} onClick={()=>sFia(fia.map(x=>x.id===f2.id?{...x,pagado:true}:x))} ch="✓ Pago"/>}/>
+                                </tr>
                               );
                             })}
                             {!fPend.length&&<tr><td colSpan={6} style={{textAlign:'center',padding:28,color:C.mu}}>✅ Sin fiados pendientes</td></tr>}
@@ -1578,8 +1570,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
                           <TD style={{color:C.gr,fontWeight:700}} ch={x.r.ganancia>0?fm(x.r.ganancia):'-'}/>
                           <TD ch={x.t==='ven'
-                            ? <Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;borrarVenta(x.r.id);}} ch="🗑"/>
-                            : <Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sGas(gas.filter(g=>g.id!==x.r.id));}} ch="🗑"/>}/>
+                            ? <Btn sm col={C.re} onClick={()=>borrarVenta(x.r.id)} ch="🗑"/>
+                            : <Btn sm col={C.re} onClick={()=>sGas(gas.filter(g=>g.id!==x.r.id))} ch="🗑"/>}/>
                         </tr>
                       ))}
                       {!allItems.length&&<tr><td colSpan={7} style={{textAlign:'center',padding:28,color:C.mu}}>Sin registros para este periodo</td></tr>}
@@ -1781,7 +1773,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                 <TD style={{fontWeight:700}} ch={fm(p.valor)}/>
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.emp60)+' ('+p.pct+'%)'}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(p.neg40)+' ('+(100-p.pct)+'%)'}/>
-                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;sEmpProd(empProd.filter(x=>x.id!==p.id));sVen(ven.filter(v=>v.id!==p.id+'e'));toast2('Eliminado','info');}} ch="🗑"/>}/>
+                                <TD ch={<Btn sm col={C.re} onClick={()=>{sEmpProd(empProd.filter(x=>x.id!==p.id));sVen(ven.filter(v=>v.id!==p.id+'e'));toast2('Eliminado','info');}} ch="🗑"/>}/>
                               </tr>
                             ))}
                             {!fil.length&&<tr><td colSpan={7} style={{textAlign:'center',padding:28,color:C.mu}}>Sin producciones para este filtro</td></tr>}
@@ -1993,7 +1985,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                 <TD style={{fontWeight:700}} ch={fm(p.valor)}/>
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.empParte)+' ('+p.pct+'%)'}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(p.negParte)+' ('+(100-p.pct)+'%)'}/>
-                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm("¿Seguro que deseas eliminar?"))return;
+                                <TD ch={<Btn sm col={C.re} onClick={()=>{
                                   sLavProd(lavProd.filter(x=>x.id!==p.id));
                                   sVen(ven.filter(v=>v.id!==p.id+'v'));
                                   toast2('Eliminado','info');
@@ -2119,7 +2111,6 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                       <TD style={{fontSize:11,color:C.mu}} ch={sv.rep||'—'}/>
                       <TD style={{color:C.gr,fontWeight:700}} ch={fm(sv.cobrado)}/>
                       <TD ch={<Btn sm col={C.re} onClick={()=>{
-                        if(!confirm("¿Seguro que deseas eliminar?"))return;
                         const newCli=cli.map(x=>x.id===c.id?{...x,servicios:x.servicios.filter(s=>s.id!==sv.id)}:x);
                         sCli(newCli); setVerCl(newCli.find(x=>x.id===c.id));
                         toast2('Servicio eliminado','info');
@@ -2182,7 +2173,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
           <div style={{marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:C.tx,marginBottom:8}}>📤 Exportar — Guardar mis datos</div>
             <div style={{fontSize:12,color:C.mu,marginBottom:10}}>Descarga un archivo con todos tus datos actuales. Guárdalo en tu teléfono o en WhatsApp contigo mismo.</div>
-           <Btn onClick={exportarDatos} col={C.gr} full ch="📥 Descargar archivo de backup"/>           </div>           <div style={{height:1,background:C.bo,margin:'16px 0'}}/>           <div>             <div style={{fontSize:13,fontWeight:700,color:C.tx,marginBottom:8}}>📊 Exportar a Excel para contabilidad</div>             <div style={{fontSize:12,color:C.mu,marginBottom:10}}>Exporta ventas, gastos, compras y nómina en un período específico.</div>             <div style={{display:'flex',gap:10,marginBottom:10,flexWrap:'wrap'}}>               <div style={{flex:1}}><div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Desde</div><input type="date" id="exDe" style={{width:'100%',background:C.su,border:'1px solid '+C.bo,borderRadius:8,color:C.tx,fontSize:14,padding:'8px 12px',outline:'none'}}/></div>               <div style={{flex:1}}><div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Hasta</div><input type="date" id="exHa" style={{width:'100%',background:C.su,border:'1px solid '+C.bo,borderRadius:8,color:C.tx,fontSize:14,padding:'8px 12px',outline:'none'}}/></div>             </div>             <Btn onClick={()=>{const de=document.getElementById('exDe').value;const ha=document.getElementById('exHa').value;exportarExcel(de,ha);}} col={C.bl} full ch="📊 Exportar a Excel"/>           </div>
+            <Btn onClick={exportarDatos} col={C.gr} full ch="📥 Descargar archivo de backup"/>
+          </div>
 
           <div style={{height:1,background:C.bo,marginBottom:20}}/>
 
