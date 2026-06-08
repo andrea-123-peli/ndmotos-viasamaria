@@ -331,12 +331,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
       herr:rHerr.current, emps:rEmps.current, empProd:rEmpProd.current,
       lavEmps:rLavEmps.current, lavProd:rLavProd.current, lavPct:rLavPct.current,
       creds:rCreds.current
-    });
-    const bk=new Blob([data],{type:'text/plain'});const bkUrl=URL.createObjectURL(bk);const bkA=document.createElement('a');bkA.href=bkUrl;bkA.download='ndmotos_backup_'+hoy()+'.json';bkA.click();URL.revokeObjectURL(bkUrl);
-    toast2('Datos exportados. Guarda el archivo en un lugar seguro','ok');
-  };
-
-  const exportarExcel = (de, ha) => {
+    }); const exportarExcel = (de, ha) => {
     const filtrar = arr => arr.filter(x => {
       const d = (x.fecha||'').slice(0,10);
       return (!de||d>=de) && (!ha||d<=ha);
