@@ -161,7 +161,8 @@ const BuscarProd = ({val,setVal,onSel,inv}) => {
   const [open,setOpen] = useState(false);
   const res = open&&val ? inv.filter(p=>
     p.nom.toLowerCase().includes(val.toLowerCase()) ||
-    p.id.toLowerCase().includes(val.toLowerCase())
+    p.id.toLowerCase().includes(val.toLowerCase()) ||
+    p.cat.toLowerCase().includes(val.toLowerCase())
   ).slice(0,7) : [];
   return (
     <div style={{position:'relative'}}>
@@ -255,13 +256,14 @@ function App() {
   const [lavProd,setLavProd] = useState([]);
   const [lavPct,setLavPct]   = useState(50);
   const [creds,setCreds]     = useState([]);
+  const [negNit,setNegNit]    = useState('');
 
   // ── REFS (para guardar sin race conditions) ──
   const rInv=useRef(BASE_INV); const rVen=useRef([]);    const rGas=useRef([]);
   const rCom=useRef([]);       const rFia=useRef([]);    const rEmp=useRef([]);
   const rCli=useRef([]);       const rMeta=useRef(0);   const rHerr=useRef([]);
   const rEmps=useRef([]);      const rEmpProd=useRef([]); const rLavEmps=useRef([]);
-  const rLavProd=useRef([]);   const rLavPct=useRef(50); const rCreds=useRef([]);
+  const rLavProd=useRef([]);   const rLavPct=useRef(50); const rCreds=useRef([]); const rNegNit=useRef('');
 
   // ── STORAGE ──
   useEffect(()=>{
@@ -296,13 +298,14 @@ function App() {
           set('lavProd',rLavProd,setLavProd);
           if(d.lavPct!=null){rLavPct.current=d.lavPct;setLavPct(d.lavPct);}
           set('creds',rCreds,setCreds);
+          if(d.negNit!=null){rNegNit.current=d.negNit;setNegNit(d.negNit);}
         }
       }catch(e){}
       if(!done){done=true;clearTimeout(to);setReady(true);}
     })();
     return ()=>clearTimeout(to);
   },[]);
-const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
+const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
   
   const sInv    = d => { rInv.current=d;    setInv(d);    guardar({inv:d});    };
   const sVen    = d => { rVen.current=d;    setVen(d);    guardar({ven:d});    };
@@ -319,8 +322,11 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const sLavProd= d => { rLavProd.current=d;setLavProd(d);guardar({lavProd:d});};
   const sLavPct = v => { rLavPct.current=v; setLavPct(v); guardar({lavPct:v}); };
   const sCreds  = d => { rCreds.current=d;  setCreds(d);  guardar({creds:d});  };
+  const sNegNit = v => { rNegNit.current=v; setNegNit(v); guardar({negNit:v}); };
 
   const [showBackup,setShowBackup] = useState(false);
+  const [perDe,setPerDe]=useState('');
+  const [perHa,setPerHa]=useState('');
   const [importTxt,setImportTxt]   = useState('');
 
   const exportarDatos = () => {
@@ -342,22 +348,50 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     });
     const ven2=filtrar(rVen.current), gas2=filtrar(rGas.current);
     const com2=filtrar(rCom.current), emp2=filtrar(rEmp.current);
-    let csv='VENTAS\nFecha,Cliente,Descripcion,Total,Ganancia,Pago\n';
-    ven2.forEach(v=>{csv+=v.fecha.slice(0,10)+','+(v.cliente||'')+','+(v.desc||'').replace(/,/g,' ')+','+v.total+','+v.ganancia+','+v.pago+'\n';});
-    csv+='\nGASTOS\nFecha,Tipo,Descripcion,Monto,Pago\n';
-    gas2.forEach(g=>{csv+=g.fecha.slice(0,10)+','+(g.tipo||'')+','+(g.desc||'').replace(/,/g,' ')+','+g.monto+','+g.pago+'\n';});
-    csv+='\nCOMPRAS\nFecha,Proveedor,Descripcion,Total,Pago\n';
-    com2.forEach(c=>{csv+=c.fecha.slice(0,10)+','+(c.proveedor||'')+','+(c.desc||'').replace(/,/g,' ')+','+c.total+','+c.pago+'\n';});
-    csv+='\nNOMINA\nFecha,Empleado,Cargo,Periodo,Monto,Pago\n';
-    emp2.forEach(e=>{csv+=e.fecha.slice(0,10)+','+(e.nombre||'')+','+(e.cargo||'')+','+(e.periodo||'')+','+e.monto+','+e.pago+'\n';});
     const tvT=ven2.reduce((a,b)=>a+b.total,0),tvG=ven2.reduce((a,b)=>a+b.ganancia,0),tGa=gas2.reduce((a,b)=>a+b.monto,0);
-    csv+='\nRESUMEN\nVentas Totales,'+tvT+'\nGanancia Bruta,'+tvG+'\nGastos Totales,'+tGa+'\nUtilidad Neta,'+(tvG-tGa)+'\n';
+    const vInvC=rInv.current.reduce((a,p)=>a+p.pc*p.stock,0), vInvV=rInv.current.reduce((a,p)=>a+p.pv*p.stock,0);
+    const S=';';
+
+    let csv='ND MOTOS - REPORTE\n';
+    csv+='Periodo'+S+(de||'Inicio')+' al '+(ha||'Hoy')+'\n\n';
+
+    csv+='=== VENTAS ===\nFecha'+S+'Cliente'+S+'Descripcion'+S+'Total'+S+'Ganancia'+S+'Pago\n';
+    ven2.forEach(v=>{csv+=v.fecha.slice(0,10)+S+(v.cliente||'')+S+(v.desc||'').replace(/;/g,' ')+S+v.total+S+v.ganancia+S+v.pago+'\n';});
+    csv+=S+S+'TOTAL'+S+tvT+S+tvG+'\n\n';
+
+    csv+='=== GASTOS ===\nFecha'+S+'Tipo'+S+'Descripcion'+S+'Monto'+S+'Pago\n';
+    gas2.forEach(g=>{csv+=g.fecha.slice(0,10)+S+(g.tipo||'')+S+(g.desc||'').replace(/;/g,' ')+S+g.monto+S+g.pago+'\n';});
+    csv+=S+S+'TOTAL'+S+tGa+'\n\n';
+
+    csv+='=== COMPRAS ===\nFecha'+S+'Proveedor'+S+'Descripcion'+S+'Total'+S+'Pago\n';
+    com2.forEach(c=>{csv+=c.fecha.slice(0,10)+S+(c.proveedor||'')+S+(c.desc||'').replace(/;/g,' ')+S+c.total+S+c.pago+'\n';});
+    csv+='\n=== NOMINA ===\nFecha'+S+'Empleado'+S+'Cargo'+S+'Periodo'+S+'Monto'+S+'Pago\n';
+    emp2.forEach(e=>{csv+=e.fecha.slice(0,10)+S+(e.nombre||'')+S+(e.cargo||'')+S+(e.periodo||'')+S+e.monto+S+e.pago+'\n';});
+
+    csv+='\n=== RESUMEN GENERAL ===\nConcepto'+S+'Valor\n';
+    csv+='Ventas Totales'+S+tvT+'\n';
+    csv+='Ganancia Bruta'+S+tvG+'\n';
+    csv+='Gastos Totales'+S+tGa+'\n';
+    csv+='Utilidad Neta'+S+(tvG-tGa)+'\n';
+    csv+='Inventario (precio compra)'+S+vInvC+'\n';
+    csv+='Inventario (precio venta)'+S+vInvV+'\n';
+
+    csv+='\n\n=== INVENTARIO ('+rInv.current.length+' productos) ===\n';
+    csv+='Referencia'+S+'Categoria'+S+'Producto'+S+'Precio Compra'+S+'Precio Venta'+S+'Stock'+S+'Valor Total Compra'+S+'Valor Total Venta\n';
+    rInv.current.forEach(p=>{
+      const nombre=p.nom.replace(/;/g,',');
+      const cat=p.cat.replace(/;/g,',');
+      csv+=p.id+S+cat+S+nombre+S+p.pc+S+p.pv+S+p.stock+S+(p.pc*p.stock)+S+(p.pv*p.stock)+'\n';
+    });
+    csv+=S+S+S+S+S+'TOTALES'+S+vInvC+S+vInvV+'\n';
+
     const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.href=url;a.download='ndmotos_'+(de||'inicio')+'_al_'+(ha||'hoy')+'.csv';a.click();
+    a.href=url;a.download='ndmotos_reporte_'+(de||'inicio')+'_al_'+(ha||'hoy')+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast2('Archivo exportado. Abrelo en Excel','ok');
+    toast2('Reporte exportado. Abrelo en Excel','ok');
   };
 
   const importarDatos = () => {
@@ -396,11 +430,13 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   // ── FORMULARIO VENTA ──
   const [vItems,setVI]=useState([]); const [vBus,setVB]=useState('');
   const [vSel,setVS]=useState(null); const [vCant,setVC]=useState('1');
-  const [vPrecio,setVPr]=useState(''); const [vCli2,setVCl]=useState('');
+  const [vPrecio,setVPr]=useState(''); const [vCli2,setVCl]=useState(''); const [vClObj,setVClObj]=useState(null);
+  const [ivaActivo,setIvaActivo]=useState(false); const IVA2=0.19;
   const [vPago,setVPg]=useState('Efectivo'); const [vTipo,setVT]=useState('prod');
   const [vST,setVST]=useState('Cambio de aceite'); const [vSD,setVSD]=useState('');
   const [vSC,setVSC]=useState('0'); const [vSP,setVSP]=useState('');
   const [ticket,setTk]=useState(null);
+  const [editVenta,setEditVenta]=useState(null);
   const [vTecnico,setVTecnico]=useState('');
 
   const addItem = () => {
@@ -421,14 +457,46 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     // Si hay tecnico asignado, registrar en produccion del taller
     if(vTecnico){
       const empObj=emps.find(e=>e.nom===vTecnico);
-      const pct=empObj?empObj.pct:60;
-      const prod={id:item.id+'t',fecha:hoy(),empleado:vTecnico,
-        servicio:vSD||vST,desc:(vSD||vST),pct,valor:pv,
-        emp60:Math.round(pv*(pct/100)),neg40:Math.round(pv*((100-pct)/100))};
-      sEmpProd([...rEmpProd.current,prod]);
+      const lavObj=lavEmps.find(e=>e.nom===vTecnico);
+      if(empObj){
+        const pct=empObj.pct;
+        const prod={id:item.id+'t',fecha:hoy(),empleado:vTecnico,
+          servicio:vSD||vST,desc:(vSD||vST),pct,valor:pv,
+          emp60:Math.round(pv*(pct/100)),neg40:Math.round(pv*((100-pct)/100))};
+        sEmpProd([...rEmpProd.current,prod]);
+      } else if(lavObj){
+        const pct=lavObj.pct;
+        const prod={id:item.id+'l',fecha:hoy(),empleado:vTecnico,servicio:(vSD||vST),
+          valor:pv,empParte:Math.round(pv*(pct/100)),negParte:Math.round(pv*((100-pct)/100)),pct};
+        sLavProd([...rLavProd.current,prod]);
+      }
     }
     setVSD('');setVSC('0');setVSP('');setVTecnico('');
     toast2('Servicio agregado'+(vTecnico?' — registrado en taller de '+vTecnico:''),'ok');
+  };
+
+  const cargarVentaParaEditar = v => {
+    // Restaurar stock de la venta vieja
+    const newInv=v.items?inv.map(p=>{const it=v.items.find(x=>x.id===p.id);return it&&!it.sv?{...p,stock:p.stock+it.cant}:p;}):inv;
+    sInv(newInv);
+    // Quitar la venta vieja
+    sVen(rVen.current.filter(x=>x.id!==v.id));
+    // Quitar produccion asociada en taller/lavadero si tenia
+    if(v.items){
+      v.items.forEach(it=>{
+        if(it.sv){
+          sEmpProd(rEmpProd.current.filter(p=>p.id!==it.id+'t'));
+          sLavProd(rLavProd.current.filter(p=>p.id!==it.id+'l'));
+        }
+      });
+    }
+    // Cargar los items en el formulario
+    setVI(v.items?[...v.items]:[]);
+    setVCl(v.cliente==='Cliente general'?'':v.cliente);
+    setVPg(v.pago);
+    setEditVenta(v.id);
+    setTab('venta');
+    toast2('Venta cargada para editar. Ajusta y vuelve a registrar','info');
   };
 
   const regVenta = () => {
@@ -437,12 +505,15 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     vItems.forEach(it=>{total+=it.pv*it.cant;ganancia+=(it.pv-it.pc)*it.cant;});
     const desc=vItems.map(it=>it.cant+'x '+it.nom).join(', ');
     const newInv=inv.map(p=>{const it=vItems.find(x=>x.id===p.id);return it&&!it.sv?{...p,stock:p.stock-it.cant}:p;});
-    const venta={id:uid(),fecha:new Date().toISOString(),tipo:'venta',cliente:vCli2||'Cliente general',desc,total,ganancia,pago:vPago,items:[...vItems]};
+    const subtotalCalc=vItems.reduce((a,b)=>a+b.pv*b.cant,0);
+    if(ivaActivo) total=Math.round(subtotalCalc*(1+IVA2));
+    const ivaMonto=ivaActivo?(total-subtotalCalc):0;
+    const venta={id:uid(),fecha:new Date().toISOString(),tipo:'venta',cliente:vCli2||'Cliente general',clienteEmail:vClObj?vClObj.email:'',clienteNit:vClObj?vClObj.nit:'',clienteEmpresa:vClObj?vClObj.empresa:false,desc,total,ganancia,pago:vPago,items:[...vItems],iva:ivaMonto};
     sInv(newInv);
     sVen([...rVen.current,venta]);
     if(vPago==='Fiado') sFia([...rFia.current,{id:uid(),nombre:vCli2||'Cliente',tel:'',desc,valor:total,fecha:new Date().toISOString(),vence:'',pagado:false}]);
     setTk(venta);
-    setVI([]);setVB('');setVS(null);setVC('1');setVPr('');setVCl('');setVTecnico('');
+    setVI([]);setVB('');setVS(null);setVC('1');setVPr('');setVCl('');setVClObj(null);setVTecnico('');setEditVenta(null);
     toast2('Venta de '+fm(total)+' registrada','ok');
   };
 
@@ -532,6 +603,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
 
   // ── FORMULARIO CLIENTES ──
   const [clNom,setClN]=useState(''); const [clTel,setClT]=useState('');
+  const [clEmpresa,setClEmpresa]=useState(false); const [clNit,setClNit]=useState(''); const [clEmail,setClEmail]=useState('');
   const [clMoto,setClM]=useState(''); const [clPlaca,setClPl]=useState('');
   const [clNotas,setClNo]=useState(''); const [clBus,setClB]=useState('');
   const [clSel,setClS]=useState(null); const [clFe,setClFe]=useState(hoy());
@@ -543,8 +615,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
 
   const addCl = () => {
     if(!clNom) return toast2('Escribe el nombre','err');
-    sCli([...cli,{id:uid(),nom:clNom,tel:clTel,moto:clMoto,placa:clPlaca,notas:clNotas,servicios:[]}]);
-    setClN('');setClT('');setClM('');setClPl('');setClNo('');toast2('Cliente registrado','ok');
+    sCli([...cli,{id:uid(),nom:clNom,tel:clTel,email:clEmail,moto:clMoto,placa:clPlaca,notas:clNotas,empresa:clEmpresa,nit:clNit,servicios:[]}]);
+    setClN('');setClT('');setClM('');setClPl('');setClNo('');setClEmail('');setClNit('');setClEmpresa(false);toast2('Cliente registrado','ok');
   };
 
   const addServCl = () => {
@@ -587,6 +659,9 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const [lvFecha,setLvFecha]=useState(''); const [lvFiltroEmp,setLvFiltroEmp]=useState('');
   const [lvFDe,setLvFDe]=useState(''); const [lvFHa,setLvFHa]=useState('');
   const [showStockModal,setShowStockModal]=useState(false);
+  const [ivaPct,setIvaPct]=useState(19);
+  const [ivaOn,setIvaOn]=useState(false);
+  const invTableRef=useRef(null);
 
   // ── CALCULOS ──
   const MIN    = parseInt(iMin)||5;
@@ -669,9 +744,47 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
               <KPI lbl="💸 Gastos"          val={fm(tGa)} col={C.re} sub="Incluye nomina" onClick={()=>setTab('gastos')}/>
               <KPI lbl="🏆 Utilidad Neta"   val={fm(util)} col={util>=0?C.ye:C.re} sub="Ganancia - Gastos"/>
             </div>
+            {/* Utilidad por periodo */}
+            <Card style={{border:`1px solid ${C.ye}`}} ch={
+              <div>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:C.mu,marginBottom:12}}>📅 Utilidad por Período</div>
+                <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:12,alignItems:'flex-end'}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Desde</div>
+                    <Inp v={perDe} s={setPerDe} type="date"/>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Hasta</div>
+                    <Inp v={perHa} s={setPerHa} type="date"/>
+                  </div>
+                  <Btn sm col="ghost" onClick={()=>{const d=new Date(),m=pad(d.getMonth()+1),y=d.getFullYear(),ul=new Date(y,d.getMonth()+1,0).getDate();setPerDe(y+'-'+m+'-01');setPerHa(y+'-'+m+'-'+pad(ul));}} ch="Este mes"/>
+                  <Btn sm col="ghost" onClick={()=>{setPerDe('');setPerHa('');}} ch="Todo"/>
+                </div>
+                {(()=>{
+                  const vP=ven.filter(v=>{const d=v.fecha.slice(0,10);return (!perDe||d>=perDe)&&(!perHa||d<=perHa);});
+                  const gP=gas.filter(g=>{const d=g.fecha.slice(0,10);return (!perDe||d>=perDe)&&(!perHa||d<=perHa);});
+                  const tvP=vP.reduce((a,b)=>a+b.total,0);
+                  const tgP=vP.reduce((a,b)=>a+b.ganancia,0);
+                  const gaP=gP.reduce((a,b)=>a+b.monto,0);
+                  const utP=tgP-gaP;
+                  return (
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+                      {[{lbl:'Ventas',val:tvP,col:C.gr},{lbl:'Ganancia',val:tgP,col:C.or},{lbl:'Gastos',val:gaP,col:C.re},{lbl:'Utilidad',val:utP,col:utP>=0?C.ye:C.re}].map((it,i)=>(
+                        <div key={i} style={{background:C.su,borderRadius:8,padding:12,textAlign:'center'}}>
+                          <div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>{it.lbl}</div>
+                          <div style={{fontSize:16,fontWeight:800,color:it.col}}>{fm(it.val)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            }/>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+            </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
               <KPI lbl="📦 Inventario" val={inv.length} col={C.bl}
-                sub={agot>0?'⛔ '+agot+' agotado(s)':bajo>0?'⚠ '+bajo+' stock bajo':'✅ OK'}
+                sub={'Bodega: '+fm(vinv)+' · Para venta: '+fm(inv.reduce((a,p)=>a+p.pv*p.stock,0))}
                 onClick={()=>setTab('inventario')}/>
               <KPI lbl="📋 Fiados"  val={fm(fTot)}  col={C.pu} sub={fPend.length+' pendientes'} onClick={()=>{setTab('clientes');setClientesSub('fiados');}}/>
               <KPI lbl="🛒 Hoy"     val={fm(tHoy)}  col={C.or} sub={vHoy.length+' ventas'} onClick={()=>setTab('venta')}/>
@@ -732,7 +845,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD style={{fontSize:12}} ch={(x.r.desc||'').slice(0,35)}/>
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
                           <TD style={{color:C.gr,fontWeight:700}} ch={x.r.ganancia>0?fm(x.r.ganancia):'-'}/>
-                          <TD ch={x.t==='ven'&&<Btn sm col={C.re} onClick={()=>borrarVenta(x.r.id)} ch="🗑"/>}/>
+                          <TD ch={x.t==='ven'&&<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;borrarVenta(x.r.id);}} ch="🗑"/>}/>
                         </tr>
                       ))}
                       {!ven.length&&!gas.length&&<tr><td colSpan={6} style={{textAlign:'center',padding:28,color:C.mu}}>Sin transacciones aun</td></tr>}
@@ -753,7 +866,24 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
               <Card ch={
                 <div>
-                  <FG lbl="Cliente (opcional)" ch={<Inp v={vCli2} s={setVCl} ph="Nombre del cliente..."/>}/>
+                  <FG lbl="Cliente (opcional)" ch={
+                    <div style={{position:'relative'}}>
+                      <Inp v={vCli2} s={v=>{setVCl(v);setVClObj(null);}} ph="Nombre del cliente..."/>
+                      {vCli2&&!vClObj&&cli.filter(c=>c.nom.toLowerCase().includes(vCli2.toLowerCase())).slice(0,4).length>0&&(
+                        <div style={{position:'absolute',top:'100%',left:0,right:0,background:C.ca,border:`1px solid ${C.or}`,borderRadius:'0 0 8px 8px',zIndex:50}}>
+                          {cli.filter(c=>c.nom.toLowerCase().includes(vCli2.toLowerCase())).slice(0,4).map(c=>(
+                            <div key={c.id} onClick={()=>{setVCl(c.nom);setVClObj(c);}}
+                              style={{padding:'8px 12px',cursor:'pointer',fontSize:13,borderBottom:`1px solid ${C.bo}`}}
+                              onMouseEnter={e=>e.currentTarget.style.background=C.su}
+                              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                              <b>{c.nom}</b>{c.empresa&&<span style={{fontSize:10,color:C.or,marginLeft:6}}>NIT: {c.nit}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {vClObj&&<div style={{fontSize:11,color:C.gr,marginTop:4}}>✓ {vClObj.empresa?'Empresa NIT '+vClObj.nit:'Cliente registrado'}{vClObj.email?' · '+vClObj.email:''}</div>}
+                    </div>
+                  }/>
                   <FG lbl="Forma de Pago" ch={<Sel v={vPago} s={setVPg} opts={PAGOS}/>}/>
                   <div style={{display:'flex',gap:8,marginBottom:12}}>
                     <Btn onClick={()=>setVT('prod')} col={vTipo==='prod'?C.bl:'ghost'} style={{flex:1,justifyContent:'center'}} ch="🔩 Producto"/>
@@ -779,7 +909,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                         <select value={vTecnico} onChange={e=>setVTecnico(e.target.value)}
                           style={{width:'100%',background:C.su,border:`1px solid ${C.bo}`,borderRadius:8,color:C.tx,fontSize:14,padding:'10px 12px',outline:'none'}}>
                           <option value="">-- Sin asignar --</option>
-                          {emps.map(e2=><option key={e2.nom} value={e2.nom}>{e2.nom} ({e2.pct}%)</option>)}
+                          {emps.map(e2=><option key={'t'+e2.nom} value={e2.nom}>🔧 {e2.nom} ({e2.pct}%)</option>)}
+                          {lavEmps.map(e2=><option key={'l'+e2.nom} value={e2.nom}>🚿 {e2.nom} ({e2.pct}%)</option>)}
                         </select>
                       }/>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
@@ -809,12 +940,23 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     </table>
                   </div>
 
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                    <div style={{fontSize:11,color:C.mu}}>¿Incluir IVA (19%)?</div>
+                    <button onClick={()=>setIvaActivo(!ivaActivo)} style={{background:ivaActivo?C.or:'transparent',border:'1px solid '+C.or,borderRadius:20,color:ivaActivo?'#fff':C.or,padding:'4px 14px',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                      {ivaActivo?'IVA ON ✓':'IVA OFF'}
+                    </button>
+                  </div>
                   <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>
-                    <div><div style={{fontSize:10,color:C.mu,textTransform:'uppercase'}}>Total</div><div style={{fontSize:22,fontWeight:800,color:C.gr}}>{fm(vItems.reduce((a,b)=>a+b.pv*b.cant,0))}</div></div>
+                    <div>
+                      <div style={{fontSize:10,color:C.mu,textTransform:'uppercase'}}>Subtotal</div>
+                      <div style={{fontSize:18,fontWeight:800,color:C.gr}}>{fm(vItems.reduce((a,b)=>a+b.pv*b.cant,0))}</div>
+                      {ivaActivo&&<div style={{fontSize:11,color:C.ye}}>+IVA: {fm(Math.round(vItems.reduce((a,b)=>a+b.pv*b.cant,0)*IVA2))}</div>}
+                      {ivaActivo&&<div style={{fontSize:16,fontWeight:800,color:C.gr}}>Total: {fm(Math.round(vItems.reduce((a,b)=>a+b.pv*b.cant,0)*(1+IVA2)))}</div>}
+                    </div>
                     <div><div style={{fontSize:10,color:C.mu,textTransform:'uppercase'}}>Ganancia</div><div style={{fontSize:22,fontWeight:800,color:C.or}}>{fm(vItems.reduce((a,b)=>a+(b.pv-b.pc)*b.cant,0))}</div></div>
                   </div>
                   <div style={{display:'flex',gap:10}}>
-                    <Btn onClick={regVenta} col={C.gr} style={{flex:1,justifyContent:'center'}} ch="✅ Registrar Venta"/>
+                    <Btn onClick={regVenta} col={C.gr} style={{flex:1,justifyContent:'center'}} ch={editVenta?"✏️ Guardar Cambios":"✅ Registrar Venta"}/>
                     <Btn onClick={()=>{setVI([]);setVB('');setVS(null);}} col="ghost" ch="🗑 Limpiar"/>
                   </div>
                 </div>
@@ -835,14 +977,16 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:C.mu,marginBottom:10}}>🕒 Ventas Recientes</div>
                     <div style={{overflowX:'auto'}}>
                       <table style={{width:'100%',borderCollapse:'collapse'}}>
-                        <thead><tr><TH ch="Hora"/><TH ch="Descripcion"/><TH ch="Total"/><TH ch=""/></tr></thead>
+                        <thead><tr><TH ch="Hora"/><TH ch="Descripcion"/><TH ch="Total"/><TH ch=""/><TH ch=""/><TH ch=""/></tr></thead>
                         <tbody>
                           {vHoy.slice(-8).reverse().map((v,i)=>(
                             <tr key={i} style={{borderBottom:`1px solid ${C.bo}`}}>
                               <TD style={{color:C.mu,fontSize:12}} ch={fT(v.fecha)}/>
                               <TD style={{fontSize:12}} ch={v.desc.slice(0,30)}/>
                               <TD style={{color:C.gr,fontWeight:700}} ch={fm(v.total)}/>
-                              <TD ch={<Btn sm col={C.re} onClick={()=>borrarVenta(v.id)} ch="🗑"/>}/>
+                              <TD ch={v.items&&v.items.length>0?<Btn sm col={C.pu} onClick={()=>setTk(v)} ch="📄"/>:null}/>
+                              <TD ch={v.tipo==='venta'&&v.items&&v.items.length>0?<Btn sm col={C.bl} onClick={()=>cargarVentaParaEditar(v)} ch="✏️"/>:null}/>
+                              <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;borrarVenta(v.id);}} ch="🗑"/>}/>
                             </tr>
                           ))}
                           {!vHoy.length&&<tr><td colSpan={4} style={{textAlign:'center',padding:20,color:C.mu}}>Sin ventas hoy</td></tr>}
@@ -907,7 +1051,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                 <TD style={{fontSize:12}} ch={c2.desc}/>
                                 <TD ch={c2.cant}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(c2.total)}/>
-                                <TD ch={<Btn sm col={C.re} onClick={()=>sCom(com.filter(x=>x.id!==c2.id))} ch="🗑"/>}/>
+                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sCom(com.filter(x=>x.id!==c2.id));}} ch="🗑"/>}/>
                               </tr>
                             ))}
                             {!com.length&&<tr><td colSpan={5} style={{textAlign:'center',padding:20,color:C.mu}}>Sin compras</td></tr>}
@@ -1028,7 +1172,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                     <div style={{fontSize:11,color:C.mu}}>{cr.proveedor} · {fD(cr.fecha)}</div>
                                   </div>
                                  <Chip col={C.re} ch="PENDIENTE"/>
-                                  <Btn sm col={C.re} ch="🗑" onClick={()=>{sCreds(creds.filter(x=>x.id!==cr.id));toast2('Factura eliminada','info');}}/>
+                                  <Btn sm col={C.re} ch="🗑" onClick={()=>{if(!confirm('¿Seguro?'))return;sCreds(creds.filter(x=>x.id!==cr.id));toast2('Factura eliminada','info');}}/>
                                 </div>
                                 <div style={{background:C.su,borderRadius:20,height:8,marginBottom:8,overflow:'hidden'}}>
                                   <div style={{background:C.gr,height:'100%',width:pct+'%',borderRadius:20}}/>
@@ -1134,7 +1278,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <TD ch={<Chip col={C.re} ch={g2.tipo}/>}/>
                               <TD style={{fontSize:12}} ch={g2.desc}/>
                               <TD style={{color:C.re,fontWeight:700}} ch={fm(g2.monto)}/>
-                              <TD ch={<Btn sm col={C.re} onClick={()=>sGas(gas.filter(x=>x.id!==g2.id))} ch="🗑"/>}/>
+                              <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sGas(gas.filter(x=>x.id!==g2.id));}} ch="🗑"/>}/>
                             </tr>
                           ))}
                           {!gas.length&&<tr><td colSpan={5} style={{textAlign:'center',padding:20,color:C.mu}}>Sin gastos</td></tr>}
@@ -1161,7 +1305,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <TD style={{fontWeight:600}} ch={e2.nombre}/>
                               <TD ch={<Chip col={C.bl} ch={e2.cargo}/>}/>
                               <TD style={{fontSize:12,color:C.mu}} ch={e2.periodo}/>
-                             <TD style={{color:C.bl,fontWeight:700}} ch={fm(e2.monto)}/><TD ch={<Btn col={C.re} ch="🗑" onClick={()=>sEmp(emp.filter(x=>x.id!==e2.id))}/>}/>
+                             <TD style={{color:C.bl,fontWeight:700}} ch={fm(e2.monto)}/><TD ch={<Btn col={C.re} ch="🗑" onClick={()=>{if(!confirm('¿Seguro?'))return;sEmp(emp.filter(x=>x.id!==e2.id));}}/>}/>
                             </tr>
                           ))}
                           {!emp.length&&<tr><td colSpan={5} style={{textAlign:'center',padding:20,color:C.mu}}>Sin pagos</td></tr>}
@@ -1194,8 +1338,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
               <div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:10}}>
                   <div style={{fontSize:15,fontWeight:800,letterSpacing:2,textTransform:'uppercase'}}>🗃 Inventario de Repuestos</div>
-                  <Btn sm col={bajo>0||agot>0?C.ye:'ghost'} onClick={()=>setShowStockModal(true)}
-                    ch={agot>0?'⛔ '+agot+' agotado(s)':bajo>0?'⚠ '+bajo+' stock bajo':'✅ Stock OK'}/>
+                  <Btn sm col={agot>0?C.re:'ghost'} onClick={()=>setShowStockModal(true)}
+                    ch={agot>0?'⛔ '+agot+' agotado(s)':'✅ Stock OK'}/>
                 </div>
                 <Card ch={
                   <div>
@@ -1214,17 +1358,24 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   </div>
                 }/>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,flexWrap:'wrap',gap:10}}>
-                  <Inp v={iBus} s={setIB} ph="🔍 Buscar producto..." style={{maxWidth:280}}/>
+                  <Inp v={iBus} s={setIB} ph="🔍 Buscar por nombre, referencia o categoria..." style={{maxWidth:340}}/>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{fontSize:11,color:C.mu}}>Stock minimo:</span>
-                    <Inp v={iMin} s={setIM} type="number" style={{width:60,textAlign:'center'}}/>
+                    <span style={{fontSize:11,color:C.mu}}>IVA %:</span>
+                    <Inp v={ivaPct} s={v=>setIvaPct(parseFloat(v)||0)} type="number" style={{width:60,textAlign:'center'}}/>
+                    <button onClick={()=>setIvaOn(!ivaOn)} style={{background:ivaOn?C.or:'transparent',border:'1px solid '+C.or,borderRadius:20,color:ivaOn?'#fff':C.or,padding:'6px 14px',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                      {ivaOn?'IVA ON ✓':'IVA OFF'}
+                    </button>
+                    <div style={{display:'flex',gap:4}}>
+                      <Btn sm col="ghost" onClick={()=>{const el=document.getElementById("invTable");if(el)el.scrollTop=0;}} ch="⬆ Inicio"/>
+                      <Btn sm col="ghost" onClick={()=>{const el=document.getElementById("invTable");if(el)el.scrollTop=el.scrollHeight;}} ch="⬇ Final"/>
+                    </div>
                   </div>
                 </div>
-                <div style={{overflowX:'auto',borderRadius:10,border:`1px solid ${C.bo}`}}>
+                <div id="invTable" style={{overflowX:'auto',overflowY:'auto',maxHeight:500,borderRadius:10,border:`1px solid ${C.bo}`}}>
                   <table style={{width:'100%',borderCollapse:'collapse'}}>
-                    <thead><tr><TH ch="Ref."/><TH ch="Cat."/><TH ch="Producto"/><TH ch="P.Compra"/><TH ch="P.Venta"/><TH ch="Ganancia"/><TH ch="Stock"/><TH ch="Estado"/><TH ch=""/><TH ch=""/></tr></thead>
+                    <thead><tr><TH ch="Ref."/><TH ch="Cat."/><TH ch="Producto"/><TH ch="P.Compra"/><TH ch="P.Venta"/>{ivaOn&&<TH ch="+ IVA"/>}<TH ch="Ganancia"/><TH ch="Stock"/><TH ch="Estado"/><TH ch=""/><TH ch=""/></tr></thead>
                     <tbody>
-                      {inv.filter(p=>!iBus||p.nom.toLowerCase().includes(iBus.toLowerCase())||p.id.toLowerCase().includes(iBus.toLowerCase())).map((p,i)=>{
+                      {inv.filter(p=>!iBus||p.nom.toLowerCase().includes(iBus.toLowerCase())||p.id.toLowerCase().includes(iBus.toLowerCase())||p.cat.toLowerCase().includes(iBus.toLowerCase())).map((p,i)=>{
                         const ag=p.stock<=0, bj=p.stock>0&&p.stock<=MIN;
                         const gan=p.pv-p.pc, mar2=p.pv>0?Math.round((gan/p.pv)*100):0;
                         return (
@@ -1234,11 +1385,12 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                             <TD style={{fontWeight:600}} ch={p.nom}/>
                             <TD style={{color:'#aaa',fontWeight:600}} ch={fm(p.pc)}/>
                             <TD style={{fontWeight:700}} ch={fm(p.pv)}/>
+                            {ivaOn&&<TD style={{color:C.ye,fontSize:11}} ch={fm(Math.round(p.pv*(1+ivaPct/100)))}/>}
                             <TD style={{color:C.gr,fontWeight:700}} ch={fm(gan)+' ('+mar2+'%)'}/>
                             <TD style={{fontSize:20,fontWeight:800,color:ag?C.re:bj?C.ye:C.gr}} ch={p.stock}/>
                             <TD ch={<Chip col={ag?C.re:bj?C.ye:C.gr} ch={ag?'AGOTADO':bj?'BAJO':'OK'}/>}/>
                             <TD ch={<Btn sm col={C.bl} onClick={()=>setEP({...p,orig:p.id})} ch="✏️"/>}/>
-                            <TD ch={<Btn sm col={C.re} onClick={()=>{sInv(inv.filter(x=>x.id!==p.id));toast2('Producto eliminado','info');}} ch="🗑"/>}/>
+                            <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sInv(inv.filter(x=>x.id!==p.id));toast2('Producto eliminado','info');}} ch="🗑"/>}/>
                           </tr>
                         );
                       })}
@@ -1299,7 +1451,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD ch={
                             <div style={{display:'flex',gap:4}}>
                               <Btn sm col={C.mu} onClick={()=>sHerr(herr.map((x,j)=>j===i?{...x,activo:!x.activo}:x))} ch={h.activo===false?'↩ Activar':'Baja'}/>
-                              <Btn sm col={C.re} onClick={()=>{sHerr(herr.filter((_,j)=>j!==i));toast2('Eliminado','info');}} ch="🗑"/>
+                              <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sHerr(herr.filter((_,j)=>j!==i));toast2('Eliminado','info');}} ch="🗑"/>
                             </div>
                           }/>
                         </tr>
@@ -1332,10 +1484,18 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                       <div>
                         <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:C.mu,marginBottom:12}}>➕ Nuevo Cliente</div>
                         {[['Nombre',clNom,setClN,'Nombre completo...'],['Telefono',clTel,setClT,'Numero...'],
+                          ['Email',clEmail,setClEmail,'correo@ejemplo.com'],
                           ['Moto',clMoto,setClM,'Ej: Honda CB 150...'],['Placa',clPlaca,setClPl,'Ej: ABC-123'],
                           ['Notas',clNotas,setClNo,'Observaciones...']].map(([lbl,val,fn,ph])=>(
                           <FG key={lbl} lbl={lbl} ch={<Inp v={val} s={fn} ph={ph}/>}/>
                         ))}
+                        <FG lbl="¿Es empresa?" ch={
+                          <div style={{display:'flex',gap:8}}>
+                            <Btn onClick={()=>setClEmpresa(false)} col={!clEmpresa?C.bl:'ghost'} style={{flex:1,justifyContent:'center'}} ch="Persona natural"/>
+                            <Btn onClick={()=>setClEmpresa(true)} col={clEmpresa?C.bl:'ghost'} style={{flex:1,justifyContent:'center'}} ch="Empresa"/>
+                          </div>
+                        }/>
+                        {clEmpresa&&<FG lbl="NIT" ch={<Inp v={clNit} s={setClNit} ph="Ej: 900123456-7"/>}/>}
                         <Btn onClick={addCl} col={C.or} full ch="👤 Registrar Cliente"/>
                       </div>
                     }/>
@@ -1407,7 +1567,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <div style={{marginTop:10,display:'flex',gap:8}}>
                                 <Btn sm col={C.bl} style={{flex:1,justifyContent:'center'}} onClick={()=>setVerCl(c)} ch="📋 Historial"/>
                                 <Btn sm col="ghost" onClick={()=>setECl({...c})} ch="✏️"/>
-                                <Btn sm col={C.re} onClick={()=>{sCli(cli.filter(x=>x.id!==c.id));toast2('Cliente eliminado','info');}} ch="🗑"/>
+                                <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sCli(cli.filter(x=>x.id!==c.id));toast2('Cliente eliminado','info');}} ch="🗑"/>
                               </div>
                             </div>
                           );
@@ -1456,7 +1616,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                   <TD style={{fontSize:12}} ch={f2.desc||'-'}/>
                                   <TD style={{color:C.pu,fontWeight:700}} ch={fm(f2.valor)}/>
                                   <TD style={{fontSize:12,color:vencido?C.re:C.mu}} ch={(f2.vence?fD(f2.vence):'Sin fecha')+(vencido?' ⚠':'')}/>
-                                 <TD ch={<div style={{display:'flex',gap:4}}><Btn sm col={C.gr} onClick={()=>sFia(fia.map(x=>x.id===f2.id?{...x,pagado:true}:x))} ch="✓ Pago"/><Btn sm col={C.re} onClick={()=>sFia(fia.filter(x=>x.id!==f2.id))} ch="🗑"/></div>}/>                                 </tr>
+                                 <TD ch={<div style={{display:'flex',gap:4}}><Btn sm col={C.gr} onClick={()=>sFia(fia.map(x=>x.id===f2.id?{...x,pagado:true}:x))} ch="✓ Pago"/><Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sFia(fia.filter(x=>x.id!==f2.id));}} ch="🗑"/></div>}/>                                 </tr>
                               );
                             })}
                             {!fPend.length&&<tr><td colSpan={6} style={{textAlign:'center',padding:28,color:C.mu}}>✅ Sin fiados pendientes</td></tr>}
@@ -1568,8 +1728,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
                           <TD style={{color:C.gr,fontWeight:700}} ch={x.r.ganancia>0?fm(x.r.ganancia):'-'}/>
                           <TD ch={x.t==='ven'
-                            ? <Btn sm col={C.re} onClick={()=>borrarVenta(x.r.id)} ch="🗑"/>
-                            : <Btn sm col={C.re} onClick={()=>sGas(gas.filter(g=>g.id!==x.r.id))} ch="🗑"/>}/>
+                            ? <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;borrarVenta(x.r.id);}} ch="🗑"/>
+                            : <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sGas(gas.filter(g=>g.id!==x.r.id));}} ch="🗑"/>}/>
                         </tr>
                       ))}
                       {!allItems.length&&<tr><td colSpan={7} style={{textAlign:'center',padding:28,color:C.mu}}>Sin registros para este periodo</td></tr>}
@@ -1771,7 +1931,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                 <TD style={{fontWeight:700}} ch={fm(p.valor)}/>
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.emp60)+' ('+p.pct+'%)'}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(p.neg40)+' ('+(100-p.pct)+'%)'}/>
-                                <TD ch={<Btn sm col={C.re} onClick={()=>{sEmpProd(empProd.filter(x=>x.id!==p.id));sVen(ven.filter(v=>v.id!==p.id+'e'));toast2('Eliminado','info');}} ch="🗑"/>}/>
+                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sEmpProd(empProd.filter(x=>x.id!==p.id));sVen(ven.filter(v=>v.id!==p.id+'e'));toast2('Eliminado','info');}} ch="🗑"/>}/>
                               </tr>
                             ))}
                             {!fil.length&&<tr><td colSpan={7} style={{textAlign:'center',padding:28,color:C.mu}}>Sin producciones para este filtro</td></tr>}
@@ -2123,46 +2283,135 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
         );
       })()}/>
 
-      {/* Modal Ticket WhatsApp */}
-      <Modal open={!!ticket} onClose={()=>setTk(null)} maxW={340} ch={ticket&&(
-        <div>
-          <div style={{textAlign:'center',marginBottom:14}}>
-            <div style={{fontSize:20,fontWeight:900,color:C.or}}>🏍 ND MOTOS</div>
-            <div style={{fontSize:11,color:C.mu,marginTop:2}}>{fDT(ticket.fecha)}</div>
-          </div>
-          <div style={{borderTop:`1px dashed ${C.bo}`,borderBottom:`1px dashed ${C.bo}`,padding:'12px 0',marginBottom:12}}>
-            {ticket.items&&ticket.items.map((it,i)=>(
-              <div key={i} style={{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:13}}>
-                <span>{it.sv?'🔧 ':''}{it.nom} x{it.cant}</span>
-                <span style={{color:C.gr,fontWeight:700}}>{fm(it.pv*it.cant)}</span>
+      {/* Modal Factura */}
+      <Modal open={!!ticket} onClose={()=>setTk(null)} maxW={420} ch={ticket&&(()=>{
+        const d=new Date(ticket.fecha);
+        const numFact='NDM-'+d.getFullYear().toString().slice(2)+pad(d.getMonth()+1)+pad(d.getDate())+'-'+ticket.id.slice(-4).toUpperCase();
+        const subtotal=ticket.items?ticket.items.reduce((a,b)=>a+b.pv*b.cant,0):ticket.total;
+        const tieneIva=ticket.iva>0;
+        return (
+        <div id="facturaPrint" style={{background:'#fff',color:'#1a1a1a',padding:24,borderRadius:8,fontFamily:'Arial,sans-serif'}}>
+          {/* Encabezado */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:'3px solid '+C.or,paddingBottom:14,marginBottom:14}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <img src={LOGO} alt="ND Motos" style={{width:50,height:50,borderRadius:8,objectFit:'cover'}}/>
+              <div>
+                <div style={{fontSize:20,fontWeight:900,color:C.or,letterSpacing:1}}>ND MOTOS</div>
+                <div style={{fontSize:10,color:'#666'}}>Repuestos y Servicio Tecnico</div>
+                {negNit&&<div style={{fontSize:10,color:'#666'}}>NIT: {negNit}</div>}
               </div>
-            ))}
-          </div>
-          <div style={{marginBottom:14}}>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}><span style={{color:C.mu,fontSize:12}}>Cliente:</span><b>{ticket.cliente}</b></div>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}><span style={{color:C.mu,fontSize:12}}>Pago:</span><b>{ticket.pago}</b></div>
-            <div style={{display:'flex',justifyContent:'space-between',paddingTop:10,borderTop:`1px dashed ${C.bo}`}}>
-              <span style={{fontSize:14,fontWeight:700}}>TOTAL</span>
-              <span style={{fontSize:22,fontWeight:800,color:C.gr}}>{fm(ticket.total)}</span>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:11,color:'#666',textTransform:'uppercase',fontWeight:700}}>Factura de Venta</div>
+              <div style={{fontSize:16,fontWeight:800,color:'#1a1a1a'}}>No. {numFact}</div>
+              <div style={{fontSize:11,color:'#666',marginTop:2}}>{pad(d.getDate())}/{pad(d.getMonth()+1)}/{d.getFullYear()} - {pad(d.getHours())}:{pad(d.getMinutes())}</div>
             </div>
           </div>
-          <div style={{display:'flex',gap:10}}>
+
+          {/* Cliente */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14,fontSize:12}}>
+            <div>
+              <div style={{color:'#999',fontSize:10,textTransform:'uppercase',fontWeight:700}}>{ticket.clienteEmpresa?'Razon Social':'Cliente'}</div>
+              <div style={{fontWeight:700,fontSize:14}}>{ticket.cliente}</div>
+              {ticket.clienteNit&&<div style={{fontSize:11,color:'#666'}}>NIT: {ticket.clienteNit}</div>}
+              {ticket.clienteEmail&&<div style={{fontSize:11,color:'#666'}}>{ticket.clienteEmail}</div>}
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{color:'#999',fontSize:10,textTransform:'uppercase',fontWeight:700}}>Forma de Pago</div>
+              <div style={{fontWeight:700,fontSize:14}}>{ticket.pago}</div>
+            </div>
+          </div>
+
+          {/* Tabla de items */}
+          <table style={{width:'100%',borderCollapse:'collapse',marginBottom:14}}>
+            <thead>
+              <tr style={{background:'#1a1a1a'}}>
+                <th style={{color:'#fff',fontSize:11,padding:'8px 6px',textAlign:'left',textTransform:'uppercase'}}>Descripcion</th>
+                <th style={{color:'#fff',fontSize:11,padding:'8px 6px',textAlign:'center',textTransform:'uppercase'}}>Cant</th>
+                <th style={{color:'#fff',fontSize:11,padding:'8px 6px',textAlign:'right',textTransform:'uppercase'}}>Precio</th>
+                <th style={{color:'#fff',fontSize:11,padding:'8px 6px',textAlign:'right',textTransform:'uppercase'}}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ticket.items&&ticket.items.map((it,i)=>(
+                <tr key={i} style={{borderBottom:'1px solid #e5e5e5'}}>
+                  <td style={{fontSize:12,padding:'8px 6px'}}>{it.sv?'🔧 ':''}{it.nom}</td>
+                  <td style={{fontSize:12,padding:'8px 6px',textAlign:'center'}}>{it.cant}</td>
+                  <td style={{fontSize:12,padding:'8px 6px',textAlign:'right'}}>{fm(it.pv)}</td>
+                  <td style={{fontSize:12,padding:'8px 6px',textAlign:'right',fontWeight:700}}>{fm(it.pv*it.cant)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Totales */}
+          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>
+            <div style={{width:220}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0'}}>
+                <span style={{color:'#666'}}>Subtotal</span>
+                <span style={{fontWeight:600}}>{fm(subtotal)}</span>
+              </div>
+              {tieneIva&&(
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'4px 0'}}>
+                  <span style={{color:'#666'}}>IVA</span>
+                  <span style={{fontWeight:600}}>{fm(ticket.total-subtotal)}</span>
+                </div>
+              )}
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:18,fontWeight:900,
+                borderTop:'2px solid '+C.or,paddingTop:8,marginTop:6,color:C.or}}>
+                <span>TOTAL</span>
+                <span>{fm(ticket.total)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{borderTop:'1px solid #e5e5e5',paddingTop:10,textAlign:'center',fontSize:10,color:'#999'}}>
+            <div style={{fontFamily:'monospace',fontSize:9,marginBottom:6,wordBreak:'break-all'}}>CUFE: {numFact}-{ticket.id}</div>
+            <div>Gracias por su compra</div>
+          </div>
+
+          {/* Botones (no se imprimen) */}
+          <div className="no-print" style={{display:'flex',gap:10,marginTop:16}}>
             <Btn onClick={()=>{
-              const d=new Date(ticket.fecha);
-              let txt='🏍 *ND MOTOS*\n📅 '+pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+'\n👤 '+ticket.cliente+'\n━━━━━━━━━━━━\n';
+              let txt='🏍 *ND MOTOS*\n📄 Factura No. '+numFact+'\n📅 '+pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+'\n👤 '+ticket.cliente+'\n━━━━━━━━━━━━\n';
               if(ticket.items) ticket.items.forEach(it=>{ txt+=(it.sv?'🔧 ':'')+it.nom+' x'+it.cant+' - '+fm(it.pv*it.cant)+'\n'; });
               txt+='━━━━━━━━━━━━\n💰 *TOTAL: '+fm(ticket.total)+'*\n💳 '+ticket.pago;
               window.open('https://wa.me/?text='+encodeURIComponent(txt));
-            }} col={C.gr} style={{flex:1,justifyContent:'center'}} ch="📲 Enviar por WhatsApp"/>
+            }} col={C.gr} style={{flex:1,justifyContent:'center'}} ch="📲 WhatsApp"/>
+            <Btn onClick={()=>{
+              const subject='Factura ND Motos No. '+numFact;
+              let body='Factura No. '+numFact+'\nFecha: '+pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+'\nCliente: '+ticket.cliente+'\n\n';
+              if(ticket.items) ticket.items.forEach(it=>{ body+=(it.sv?'[Servicio] ':'')+it.nom+' x'+it.cant+' - '+fm(it.pv*it.cant)+'\n'; });
+              body+='\nTOTAL: '+fm(ticket.total)+'\nForma de pago: '+ticket.pago;
+              const mailto=(ticket.clienteEmail||'')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+              window.open('mailto:'+mailto);
+            }} col={C.pu} style={{flex:1,justifyContent:'center'}} ch="✉️ Correo"/>
+            <Btn onClick={()=>{
+              const printContent=document.getElementById('facturaPrint').cloneNode(true);
+              const noprint=printContent.querySelector('.no-print');
+              if(noprint) noprint.remove();
+              const w=window.open('','_blank');
+              w.document.write('<html><head><title>Factura '+numFact+'</title><style>body{font-family:Arial,sans-serif;padding:20px;}</style></head><body>'+printContent.innerHTML+'</body></html>');
+              w.document.close();
+              setTimeout(()=>w.print(),300);
+            }} col={C.bl} style={{flex:1,justifyContent:'center'}} ch="🖨 Imprimir / PDF"/>
             <Btn onClick={()=>setTk(null)} col="ghost" ch="✕"/>
           </div>
         </div>
-      )}/>
+        );
+      })()}/>
 
       {/* Modal Backup */}
       <Modal open={showBackup} onClose={()=>setShowBackup(false)} ch={
         <div>
           <div style={{fontSize:18,fontWeight:800,color:C.or,marginBottom:16}}>💾 Backup de Datos</div>
+
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:C.tx,marginBottom:8}}>🏢 Datos del Negocio (para facturas)</div>
+            <FG lbl="NIT de ND Motos" ch={<Inp v={negNit} s={sNegNit} ph="Ej: 900123456-7"/>}/>
+          </div>
+          <div style={{height:1,background:C.bo,margin:'16px 0'}}/>
 
           <div style={{background:'rgba(255,107,26,.1)',border:`1px solid ${C.or}`,borderRadius:10,padding:14,marginBottom:16,fontSize:12,color:C.tx}}>
             ⚠️ Los datos no se guardan automáticamente al cerrar la app. Usa este backup para no perder nada.
