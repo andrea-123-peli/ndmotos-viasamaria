@@ -256,6 +256,7 @@ function App() {
   const [lavProd,setLavProd] = useState([]);
   const [lavPct,setLavPct]   = useState(50);
   const [creds,setCreds]     = useState([]);
+  const [adelantos,setAdelantos] = useState([]);
   const [negNit,setNegNit]    = useState('');
 
   // ── REFS (para guardar sin race conditions) ──
@@ -263,7 +264,7 @@ function App() {
   const rCom=useRef([]);       const rFia=useRef([]);    const rEmp=useRef([]);
   const rCli=useRef([]);       const rMeta=useRef(0);   const rHerr=useRef([]);
   const rEmps=useRef([]);      const rEmpProd=useRef([]); const rLavEmps=useRef([]);
-  const rLavProd=useRef([]);   const rLavPct=useRef(50); const rCreds=useRef([]); const rNegNit=useRef('');
+  const rLavProd=useRef([]);   const rLavPct=useRef(50); const rCreds=useRef([]); const rNegNit=useRef(''); const rAdelantos=useRef([]);
 
   // ── STORAGE ──
   useEffect(()=>{
@@ -299,13 +300,14 @@ function App() {
           if(d.lavPct!=null){rLavPct.current=d.lavPct;setLavPct(d.lavPct);}
           set('creds',rCreds,setCreds);
           if(d.negNit!=null){rNegNit.current=d.negNit;setNegNit(d.negNit);}
+          if(d.adelantos){rAdelantos.current=d.adelantos;setAdelantos(d.adelantos);}
         }
       }catch(e){}
       if(!done){done=true;clearTimeout(to);setReady(true);}
     })();
     return ()=>clearTimeout(to);
   },[]);
-const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
+const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,adelantos:rAdelantos.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
   
   const sInv    = d => { rInv.current=d;    setInv(d);    guardar({inv:d});    };
   const sVen    = d => { rVen.current=d;    setVen(d);    guardar({ven:d});    };
@@ -323,6 +325,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const sLavPct = v => { rLavPct.current=v; setLavPct(v); guardar({lavPct:v}); };
   const sCreds  = d => { rCreds.current=d;  setCreds(d);  guardar({creds:d});  };
   const sNegNit = v => { rNegNit.current=v; setNegNit(v); guardar({negNit:v}); };
+  const sAdelantos = d => { rAdelantos.current=d; setAdelantos(d); guardar({adelantos:d}); };
 
   const [showBackup,setShowBackup] = useState(false);
   const [perDe,setPerDe]=useState('');
@@ -435,6 +438,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const [vPago,setVPg]=useState('Efectivo'); const [vTipo,setVT]=useState('prod');
   const [vST,setVST]=useState('Cambio de aceite'); const [vSD,setVSD]=useState('');
   const [vSC,setVSC]=useState('0'); const [vSP,setVSP]=useState('');
+  const [vDNom,setVDNom]=useState(''); const [vDPc,setVDPc]=useState(''); const [vDPv,setVDPv]=useState('');
   const [ticket,setTk]=useState(null);
   const [editVenta,setEditVenta]=useState(null);
   const [vTecnico,setVTecnico]=useState('');
@@ -445,7 +449,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     if(vSel.stock<cant) return toast2('Stock insuficiente. Hay '+vSel.stock,'err');
     const ex=vItems.find(x=>x.id===vSel.id);
     if(ex) setVI(vItems.map(x=>x.id===vSel.id?{...x,cant:x.cant+cant,pv}:x));
-    else   setVI([...vItems,{id:vSel.id,nom:vSel.nom,pv,pc:vSel.pc,cant,sv:false}]);
+    else   setVI([...vItems,{id:vSel.id,nom:vSel.nom,cat:vSel.cat,pv,pc:vSel.pc,cant,sv:false}]);
     setVB('');setVS(null);setVC('1');setVPr('');
   };
 
@@ -504,7 +508,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     let total=0, ganancia=0;
     vItems.forEach(it=>{total+=it.pv*it.cant;ganancia+=(it.pv-it.pc)*it.cant;});
     const desc=vItems.map(it=>it.cant+'x '+it.nom).join(', ');
-    const newInv=inv.map(p=>{const it=vItems.find(x=>x.id===p.id);return it&&!it.sv?{...p,stock:p.stock-it.cant}:p;});
+    const newInv=inv.map(p=>{const it=vItems.find(x=>x.id===p.id);return it&&!it.sv&&!it.directo?{...p,stock:p.stock-it.cant}:p;});
     const subtotalCalc=vItems.reduce((a,b)=>a+b.pv*b.cant,0);
     if(ivaActivo) total=Math.round(subtotalCalc*(1+IVA2));
     const ivaMonto=ivaActivo?(total-subtotalCalc):0;
@@ -513,7 +517,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     sVen([...rVen.current,venta]);
     if(vPago==='Fiado') sFia([...rFia.current,{id:uid(),nombre:vCli2||'Cliente',tel:'',desc,valor:total,fecha:new Date().toISOString(),vence:'',pagado:false}]);
     setTk(venta);
-    setVI([]);setVB('');setVS(null);setVC('1');setVPr('');setVCl('');setVClObj(null);setVTecnico('');setEditVenta(null);
+    setVI([]);setVB('');setVS(null);setVC('1');setVPr('');setVCl('');setVClObj(null);setVTecnico('');setEditVenta(null);setVDNom('');setVDPc('');setVDPv('');
     toast2('Venta de '+fm(total)+' registrada','ok');
   };
 
@@ -546,7 +550,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     if(cNuevo){
       if(!cRef||!cNom) return toast2('Completa referencia y nombre','err');
       const refU=cRef.toUpperCase();
-      if(inv.find(p=>p.id===refU)) return toast2('Esa referencia ya existe','err');
+      // Referencias duplicadas permitidas
       newInv=[...inv,{id:refU,cat:cCat,nom:cNom,pc,pv,stock:cant}]; nomP=cNom;
     } else {
       if(!cSel) return toast2('Selecciona el producto','err');
@@ -596,7 +600,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const addProd = () => {
     if(!iRef) return toast2('Escribe la referencia','err');
     if(!iNom) return toast2('Escribe el nombre','err');
-    if(inv.find(p=>p.id===iRef.toUpperCase())) return toast2('Esa referencia ya existe','err');
+    // Referencias duplicadas permitidas
     sInv([...inv,{id:iRef.toUpperCase(),cat:iCat,nom:iNom,pc:parseFloat(iPc)||0,pv:parseFloat(iPv)||0,stock:parseInt(iStk)||0}]);
     setIR('');setIN('');setIP('');setIPv('');setIS('');toast2('Producto agregado','ok');
   };
@@ -648,7 +652,11 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const [showG,setShowG]=useState(false);
 
   // ── FORMULARIO EMPLEADOS ──
-  const [epEmp,setEpEmp]=useState(''); const [epNomNuevo,setEpNomNuevo]=useState('');
+  const [epEmp,setEpEmp]=useState('');
+  const [adelModal,setAdelModal]=useState(null);
+  const [adelMonto,setAdelMonto]=useState('');
+  const [adelDesc,setAdelDesc]=useState('');
+  const [adelFecha,setAdelFecha]=useState(''); const [epNomNuevo,setEpNomNuevo]=useState('');
   const [epDesc,setEpDesc]=useState(''); const [epVal,setEpVal]=useState('');
   const [epFecha,setEpFecha]=useState(''); const [epFiltro,setEpFiltro]=useState('');
   const [epFDe,setEpFDe]=useState(''); const [epFHa,setEpFHa]=useState('');
@@ -886,8 +894,9 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   }/>
                   <FG lbl="Forma de Pago" ch={<Sel v={vPago} s={setVPg} opts={PAGOS}/>}/>
                   <div style={{display:'flex',gap:8,marginBottom:12}}>
-                    <Btn onClick={()=>setVT('prod')} col={vTipo==='prod'?C.bl:'ghost'} style={{flex:1,justifyContent:'center'}} ch="🔩 Producto"/>
+                    <Btn onClick={()=>setVT('prod')} col={vTipo==='prod'?C.bl:'ghost'} style={{flex:1,justifyContent:'center'}} ch="🔩 Inventario"/>
                     <Btn onClick={()=>setVT('serv')} col={vTipo==='serv'?C.bl:'ghost'} style={{flex:1,justifyContent:'center'}} ch="🔧 Servicio"/>
+                    <Btn onClick={()=>setVT('directo')} col={vTipo==='directo'?C.gr:'ghost'} style={{flex:1,justifyContent:'center'}} ch="💰 Venta Directa"/>
                   </div>
 
                   {vTipo==='prod'&&(
@@ -898,6 +907,27 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                         <FG lbl="Precio Venta ($)" ch={<Inp v={vPrecio} s={setVPr} type="number" ph="0" style={{borderColor:C.or}}/>}/>
                       </div>
                       <Btn onClick={addItem} col={C.bl} full ch="+ Agregar producto" style={{marginBottom:12}}/>
+                    </div>
+                  )}
+
+                  {vTipo==='directo'&&(
+                    <div>
+                      <FG lbl="Nombre del producto" ch={<Inp v={vDNom} s={setVDNom} ph="Ej: Aceite 20W50, Llanta..."/>}/>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                        <FG lbl="Precio de compra ($)" ch={<Inp v={vDPc} s={setVDPc} type="number" ph="0"/>}/>
+                        <FG lbl="Precio de venta ($)" ch={<Inp v={vDPv} s={setVDPv} type="number" ph="0" style={{borderColor:C.gr}}/>}/>
+                      </div>
+                      {vDPc&&vDPv&&<div style={{background:'rgba(34,197,94,.1)',borderRadius:8,padding:'8px 12px',marginBottom:10,fontSize:13}}>
+                        Ganancia: <span style={{color:C.gr,fontWeight:800}}>{fm(parseFloat(vDPv||0)-parseFloat(vDPc||0))}</span>
+                      </div>}
+                      <Btn onClick={()=>{
+                        const pc=parseFloat(vDPc)||0, pv=parseFloat(vDPv)||0;
+                        if(!vDNom.trim()) return toast2('Escribe el nombre del producto','err');
+                        if(!pv) return toast2('Ingresa el precio de venta','err');
+                        setVI([...vItems,{id:'D'+uid(),nom:vDNom.trim(),pv,pc,cant:1,sv:false,directo:true}]);
+                        setVDNom('');setVDPc('');setVDPv('');
+                        toast2('Producto agregado','ok');
+                      }} col={C.gr} full ch="+ Agregar Venta Directa" style={{marginBottom:12}}/>
                     </div>
                   )}
 
@@ -1827,7 +1857,10 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     <div key={e2.nom} style={{background:C.ca,border:`1px solid ${C.bo}`,borderLeft:`4px solid ${C.bl}`,borderRadius:10,padding:14,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                         <div style={{fontWeight:800,fontSize:15}}>{e2.nom}</div>
-                        <Btn sm col={C.re} onClick={()=>{sEmps(emps.filter(x=>x.nom!==e2.nom));sEmpProd(empProd.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
+                        <div style={{display:'flex',gap:6}}>
+                          <Btn sm col={C.ye} onClick={()=>{setAdelModal({nom:e2.nom,tipo:'taller'});setAdelMonto('');setAdelDesc('');setAdelFecha(hoy());}} ch="+ Adelanto"/>
+                          <Btn sm col={C.re} onClick={()=>{sEmps(emps.filter(x=>x.nom!==e2.nom));sEmpProd(empProd.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
+                        </div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,background:C.su,borderRadius:8,padding:'8px 12px'}}>
                         <span style={{fontSize:11,color:C.mu}}>Porcentaje:</span>
@@ -1839,30 +1872,84 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                         <span style={{fontSize:11,color:C.or}}>Neg: {100-e2.pct}%</span>
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>
-                        {[{lbl:'Hoy',val:tH,col:C.bl},{lbl:'Esta semana',val:tS,col:C.cy},{lbl:'Este mes',val:tM,col:C.or},{lbl:'Total',val:tT,col:C.pu}].map((it,i)=>(
-                          <div key={i} style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
-                            <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>{it.lbl}</div>
-                            <div style={{fontSize:14,fontWeight:800,color:it.col}}>{fm(it.val)}</div>
-                            <div style={{fontSize:9,color:C.gr,marginTop:2}}>{e2.pct}%: {fm(Math.round(it.val*(e2.pct/100)))}</div>
-                          </div>
-                        ))}
+                        {(()=>{
+                          const peL=lavProd.filter(p=>p.empleado===e2.nom);
+                          const tHL=peL.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
+                          const tSL=peL.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado).reduce((a,b)=>a+b.valor,0);
+                          const tML=peL.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
+                          const tTL=peL.reduce((a,b)=>a+b.valor,0);
+                          const tieneL=tTL>0;
+                          return [
+                            {lbl:'Hoy',tot:tH+tHL,t:tH,l:tHL,col:C.bl},
+                            {lbl:'Esta semana',tot:tS+tSL,t:tS,l:tSL,col:C.cy},
+                            {lbl:'Este mes',tot:tM+tML,t:tM,l:tML,col:C.or},
+                            {lbl:'Total',tot:tT+tTL,t:tT,l:tTL,col:C.pu}
+                          ].map((it,i)=>(
+                            <div key={i} style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
+                              <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>{it.lbl}</div>
+                              <div style={{fontSize:16,fontWeight:800,color:it.col}}>{fm(it.tot)}</div>
+                              {tieneL&&<div style={{fontSize:9,color:C.mu,marginTop:1}}>🔧{fm(it.t)} + 🚿{fm(it.l)}</div>}
+                              <div style={{fontSize:9,color:C.gr,marginTop:2}}>{e2.pct}%: {fm(Math.round(it.tot*(e2.pct/100)))}</div>
+                            </div>
+                          ));
+                        })()}
                       </div>
-                      {tS>0&&(
-                        <div style={{background:'rgba(6,182,212,.1)',border:`1px solid ${C.cy}`,borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      {(()=>{
+                        const adelEmp=adelantos.filter(a=>a.nom===e2.nom&&!a.pagado);
+                        const totalAdel=adelEmp.reduce((a,b)=>a+b.monto,0);
+                        const pagoReal=Math.max(0,pagoSem-totalAdel);
+                        return tS>0&&(
                           <div>
-                            <div style={{fontSize:11,color:C.cy,fontWeight:700}}>💰 Pago a {e2.nom}</div>
-                            <div style={{fontSize:12,color:C.mu}}>Semana del {sem.ini} al {sem.fin}</div>
-                            <div style={{fontSize:13,fontWeight:800,color:C.gr}}>Le corresponde: {fm(pagoSem)} ({e2.pct}% de {fm(tS)})</div>
+                            {adelEmp.length>0&&(
+                              <div style={{background:'rgba(239,68,68,.1)',border:`1px solid ${C.re}`,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
+                                <div style={{fontSize:10,color:C.re,fontWeight:700,textTransform:'uppercase',marginBottom:4}}>Adelantos pendientes</div>
+                                {adelEmp.map((a,i)=>(
+                                  <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
+                                    <span style={{color:C.mu}}>{a.fecha} — {a.desc||'Adelanto'}</span>
+                                    <span style={{color:C.re,fontWeight:700}}>{fm(a.monto)}</span>
+                                  </div>
+                                ))}
+                                <div style={{display:'flex',justifyContent:'space-between',fontSize:13,fontWeight:800,borderTop:`1px solid ${C.re}`,paddingTop:4,marginTop:4}}>
+                                  <span>Total adelantos</span>
+                                  <span style={{color:C.re}}>{fm(totalAdel)}</span>
+                                </div>
+                              </div>
+                            )}
+                            <div style={{background:'rgba(6,182,212,.1)',border:`1px solid ${C.cy}`,borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                              <div>
+                                <div style={{fontSize:11,color:C.cy,fontWeight:700}}>💰 Pago a {e2.nom}</div>
+                                <div style={{fontSize:12,color:C.mu}}>Semana del {sem.ini} al {sem.fin}</div>
+                                <div style={{fontSize:12,color:C.gr}}>🔧 Taller ({e2.pct}%): {fm(pagoSem)}</div>
+                                {(()=>{
+                                  const peL3=lavProd.filter(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado);
+                                  const tSL3=peL3.reduce((a,b)=>a+b.valor,0);
+                                  const lavObj3=lavEmps.find(e=>e.nom===e2.nom);
+                                  const pctL3=lavObj3?lavObj3.pct:e2.pct;
+                                  const pagoLav3=Math.round(tSL3*(pctL3/100));
+                                  return tSL3>0&&<div style={{fontSize:12,color:C.cy}}>🚿 Lavadero ({pctL3}%): {fm(pagoLav3)}</div>;
+                                })()}
+                                {totalAdel>0&&<div style={{fontSize:12,color:C.re}}>Adelantos: -{fm(totalAdel)}</div>}
+                                <div style={{fontSize:15,fontWeight:800,color:C.gr}}>A pagar: {fm(pagoReal+(()=>{const peL3=lavProd.filter(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado);const tSL3=peL3.reduce((a,b)=>a+b.valor,0);const lavObj3=lavEmps.find(e=>e.nom===e2.nom);return Math.round(tSL3*((lavObj3?lavObj3.pct:e2.pct)/100));})())}</div>
+                              </div>
+                              <Btn sm col={C.gr} onClick={()=>{
+                                // Produccion lavadero de esta semana
+                                const peL2=lavProd.filter(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado);
+                                const tSL2=peL2.reduce((a,b)=>a+b.valor,0);
+                                const lavObj2=lavEmps.find(e=>e.nom===e2.nom);
+                                const pctL2=lavObj2?lavObj2.pct:e2.pct;
+                                const pagoLav2=Math.round(tSL2*(pctL2/100));
+                                const totalPago=pagoReal+pagoLav2;
+                                sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Produccion (Taller'+(tSL2>0?'+Lavadero':'')+')',periodo:sem.ini+' al '+sem.fin,monto:totalPago,pago:'Efectivo'}]);
+                                sEmpProd(empProd.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
+                                if(tSL2>0) sLavProd(rLavProd.current.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
+                                else sLavProd(rLavProd.current);
+                                sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
+                                toast2('Pago total de '+fm(totalPago)+' a '+e2.nom+' registrado','ok');
+                              }} ch="✅ Registrar pago"/>
+                            </div>
                           </div>
-                          <Btn sm col={C.gr} onClick={()=>{
-                            // Solo registrar como referencia en emp (no en gastos, el 40% ya quedo como ganancia)
-                            sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Produccion',periodo:sem.ini+' al '+sem.fin,monto:pagoSem,pago:'Efectivo'}]);
-                            // Marcar como pagado, no borrar (para que quede en historial y resumen)
-                            sEmpProd(empProd.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
-                            toast2('Pago de '+fm(pagoSem)+' a '+e2.nom+' registrado','ok');
-                          }} ch="✅ Registrar pago"/>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -1876,8 +1963,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                 <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:14,alignItems:'center'}}>
                   <select value={epFiltro} onChange={e=>setEpFiltro(e.target.value)}
                     style={{background:C.su,border:`1px solid ${C.bo}`,borderRadius:8,color:C.tx,fontSize:13,padding:'8px 12px',outline:'none',flex:1,minWidth:120}}>
-                    <option value="">Todos los tecnicos</option>
-                    {emps.map(e2=><option key={e2.nom} value={e2.nom}>{e2.nom}</option>)}
+                    <option value="">Todos los empleados</option>
+                    {[...new Set([...emps.map(e=>e.nom),...lavEmps.map(e=>e.nom)])].map(nom=><option key={nom} value={nom}>{nom}</option>)}
                   </select>
                   <Inp v={epFDe} s={setEpFDe} type="date" style={{width:150}}/>
                   <Inp v={epFHa} s={setEpFHa} type="date" style={{width:150}}/>
@@ -1889,12 +1976,19 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   }} ch="Mes"/>
                 </div>
                 {(()=>{
-                  const fil=empProd.filter(p=>{
+                  const filT=empProd.filter(p=>{
                     if(epFiltro&&p.empleado!==epFiltro) return false;
                     if(epFDe&&p.fecha<epFDe) return false;
                     if(epFHa&&p.fecha>epFHa) return false;
                     return true;
-                  }).slice().reverse();
+                  });
+                  const filL=lavProd.filter(p=>{
+                    if(epFiltro&&p.empleado!==epFiltro) return false;
+                    if(epFDe&&p.fecha<epFDe) return false;
+                    if(epFHa&&p.fecha>epFHa) return false;
+                    return true;
+                  }).map(p=>({...p,emp60:p.empParte,neg40:p.negParte,desc:p.servicio,tipo:'🚿 Lavadero'}));
+                  const fil=[...filT.map(p=>({...p,tipo:'🔧 Taller'})),...filL].sort((a,b)=>b.fecha.localeCompare(a.fecha));
                   const totVal=fil.reduce((a,b)=>a+b.valor,0);
                   const tot60=fil.reduce((a,b)=>a+b.emp60,0);
                   const tot40=fil.reduce((a,b)=>a+b.neg40,0);
@@ -1921,12 +2015,13 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                       )}
                       <div style={{overflowX:'auto'}}>
                         <table style={{width:'100%',borderCollapse:'collapse'}}>
-                          <thead><tr><TH ch="Fecha"/><TH ch="Empleado"/><TH ch="Servicio"/><TH ch="Total"/><TH ch="% Empleado"/><TH ch="% Negocio"/><TH ch=""/></tr></thead>
+                          <thead><tr><TH ch="Fecha"/><TH ch="Empleado"/><TH ch="Tipo"/><TH ch="Servicio"/><TH ch="Total"/><TH ch="% Empleado"/><TH ch="% Negocio"/><TH ch=""/></tr></thead>
                           <tbody>
                             {fil.map((p,i)=>(
                               <tr key={i} style={{borderBottom:`1px solid ${C.bo}`}}>
                                 <TD style={{fontSize:12,color:C.mu,whiteSpace:'nowrap'}} ch={p.fecha}/>
                                 <TD style={{fontWeight:700,color:C.bl}} ch={p.empleado}/>
+                                <TD style={{fontSize:11}} ch={p.tipo||'🔧 Taller'}/>
                                 <TD style={{fontSize:12}} ch={<span>{p.desc}{p.pagado&&<span style={{fontSize:10,color:C.gr,marginLeft:6}}>✓ pagado</span>}</span>}/>
                                 <TD style={{fontWeight:700}} ch={fm(p.valor)}/>
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.emp60)+' ('+p.pct+'%)'}/>
@@ -2053,7 +2148,10 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     <div key={e2.nom} style={{background:C.ca,border:`1px solid ${C.bo}`,borderLeft:`4px solid ${C.cy}`,borderRadius:10,padding:14}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                         <div style={{fontWeight:800,fontSize:14}}>🚿 {e2.nom}</div>
-                        <Btn sm col={C.re} onClick={()=>{sLavEmps(lavEmps.filter(x=>x.nom!==e2.nom));sLavProd(lavProd.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
+                        <div style={{display:'flex',gap:6}}>
+                          <Btn sm col={C.ye} onClick={()=>{setAdelModal({nom:e2.nom,tipo:'lavadero'});setAdelMonto('');setAdelDesc('');setAdelFecha(hoy());}} ch="+ Adelanto"/>
+                          <Btn sm col={C.re} onClick={()=>{sLavEmps(lavEmps.filter(x=>x.nom!==e2.nom));sLavProd(lavProd.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
+                        </div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,background:C.su,borderRadius:8,padding:'8px 12px'}}>
                         <span style={{fontSize:11,color:C.mu}}>Porcentaje:</span>
@@ -2073,22 +2171,45 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           </div>
                         ))}
                       </div>
-                      {tS>0&&(
-                        <div style={{background:'rgba(34,197,94,.1)',border:`1px solid ${C.gr}`,borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      {(()=>{
+                        const adelEmpL=adelantos.filter(a=>a.nom===e2.nom&&!a.pagado);
+                        const totalAdelL=adelEmpL.reduce((a,b)=>a+b.monto,0);
+                        const pagoRealL=Math.max(0,pagoSem-totalAdelL);
+                        return tS>0&&(
                           <div>
-                            <div style={{fontSize:11,color:C.gr,fontWeight:700}}>💰 Pago a {e2.nom}</div>
-                            <div style={{fontSize:12,color:C.mu}}>Semana del {sem.ini} al {sem.fin}</div>
-                            <div style={{fontSize:13,fontWeight:800,color:C.gr}}>Le corresponde: {fm(pagoSem)} ({e2.pct}% de {fm(tS)})</div>
+                            {adelEmpL.length>0&&(
+                              <div style={{background:'rgba(239,68,68,.1)',border:`1px solid ${C.re}`,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
+                                <div style={{fontSize:10,color:C.re,fontWeight:700,textTransform:'uppercase',marginBottom:4}}>Adelantos pendientes</div>
+                                {adelEmpL.map((a,i)=>(
+                                  <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
+                                    <span style={{color:C.mu}}>{a.fecha} — {a.desc||'Adelanto'}</span>
+                                    <span style={{color:C.re,fontWeight:700}}>{fm(a.monto)}</span>
+                                  </div>
+                                ))}
+                                <div style={{display:'flex',justifyContent:'space-between',fontSize:13,fontWeight:800,borderTop:`1px solid ${C.re}`,paddingTop:4,marginTop:4}}>
+                                  <span>Total adelantos</span>
+                                  <span style={{color:C.re}}>{fm(totalAdelL)}</span>
+                                </div>
+                              </div>
+                            )}
+                            <div style={{background:'rgba(34,197,94,.1)',border:`1px solid ${C.gr}`,borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                              <div>
+                                <div style={{fontSize:11,color:C.gr,fontWeight:700}}>💰 Pago a {e2.nom}</div>
+                                <div style={{fontSize:12,color:C.mu}}>Semana del {sem.ini} al {sem.fin}</div>
+                                <div style={{fontSize:12,color:C.gr}}>Producción ({e2.pct}%): {fm(pagoSem)}</div>
+                                {totalAdelL>0&&<div style={{fontSize:12,color:C.re}}>Adelantos: -{fm(totalAdelL)}</div>}
+                                <div style={{fontSize:15,fontWeight:800,color:C.gr}}>A pagar: {fm(pagoRealL)}</div>
+                              </div>
+                              <Btn sm col={C.gr} onClick={()=>{
+                                sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Lavadero',periodo:sem.ini+' al '+sem.fin,monto:pagoRealL,pago:'Efectivo'}]);
+                                sLavProd(lavProd.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
+                                sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
+                                toast2('Pago de '+fm(pagoRealL)+' a '+e2.nom+' registrado','ok');
+                              }} ch="✅ Registrar pago"/>
+                            </div>
                           </div>
-                          <Btn sm col={C.gr} onClick={()=>{
-                            // Solo registrar como referencia en emp (no en gastos, el 40% ya quedo como ganancia)
-                            sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Lavadero',periodo:sem.ini+' al '+sem.fin,monto:pagoSem,pago:'Efectivo'}]);
-                            // Marcar como pagado, no borrar
-                            sLavProd(lavProd.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
-                            toast2('Pago de '+fm(pagoSem)+' a '+e2.nom+' registrado','ok');
-                          }} ch="✅ Registrar pago"/>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -2167,6 +2288,27 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
       {/* ╔══════════════════════════════╗ */}
       {/* ║           MODALES            ║ */}
       {/* ╚══════════════════════════════╝ */}
+
+      {/* Modal Adelanto */}
+      <Modal open={!!adelModal} onClose={()=>setAdelModal(null)} ch={adelModal&&(
+        <div>
+          <div style={{fontSize:18,fontWeight:800,color:C.ye,marginBottom:16}}>💰 Registrar Adelanto — {adelModal.nom}</div>
+          <FG lbl="Fecha" ch={<Inp v={adelFecha||hoy()} s={setAdelFecha} type="date"/>}/>
+          <FG lbl="Descripcion (para qué fue)" ch={<Inp v={adelDesc} s={setAdelDesc} ph="Ej: Para almuerzo, transporte..."/>}/>
+          <FG lbl="Monto ($)" ch={<Inp v={adelMonto} s={setAdelMonto} type="number" ph="0" style={{borderColor:C.ye}}/>}/>
+          <div style={{display:'flex',gap:10}}>
+            <Btn onClick={()=>{
+              const monto=parseFloat(adelMonto);
+              if(!monto) return toast2('Ingresa el monto','err');
+              sAdelantos([...rAdelantos.current,{id:uid(),nom:adelModal.nom,tipo:adelModal.tipo,
+                fecha:adelFecha||hoy(),desc:adelDesc||'Adelanto',monto,pagado:false}]);
+              setAdelModal(null);
+              toast2('Adelanto de '+fm(monto)+' registrado para '+adelModal.nom,'ok');
+            }} col={C.ye} style={{flex:1,justifyContent:'center'}} ch="💰 Registrar Adelanto"/>
+            <Btn onClick={()=>setAdelModal(null)} col="ghost" ch="Cancelar"/>
+          </div>
+        </div>
+      )}/>
 
       {/* Modal Stock Bajo */}
       <Modal open={showStockModal} onClose={()=>setShowStockModal(false)} ch={
@@ -2335,7 +2477,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
             <tbody>
               {ticket.items&&ticket.items.map((it,i)=>(
                 <tr key={i} style={{borderBottom:'1px solid #e5e5e5'}}>
-                  <td style={{fontSize:12,padding:'8px 6px'}}>{it.sv?'🔧 ':''}{it.nom}</td>
+                  <td style={{fontSize:12,padding:'8px 6px'}}>{it.sv?'🔧 ':''}{it.nom}{it.cat?' ('+it.cat+')':''}</td>
                   <td style={{fontSize:12,padding:'8px 6px',textAlign:'center'}}>{it.cant}</td>
                   <td style={{fontSize:12,padding:'8px 6px',textAlign:'right'}}>{fm(it.pv)}</td>
                   <td style={{fontSize:12,padding:'8px 6px',textAlign:'right',fontWeight:700}}>{fm(it.pv*it.cant)}</td>
