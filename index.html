@@ -456,7 +456,13 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const addServ = () => {
     const pv=parseFloat(vSP);
     if(!pv) return toast2('Ingresa el precio','err');
-    const item={id:'SVC'+uid(),nom:vSD||vST,pv,pc:parseFloat(vSC)||0,cant:1,sv:true,tecnico:vTecnico};
+    const pcBase=parseFloat(vSC)||0;
+    const empObjPre=emps.find(e=>e.nom===vTecnico);
+    const lavObjPre=lavEmps.find(e=>e.nom===vTecnico);
+    const pctPre=empObjPre?empObjPre.pct:lavObjPre?lavObjPre.pct:0;
+    // Si tiene tecnico, el costo real = porcentaje del tecnico (para que ganancia = porcentaje del negocio)
+    const pcReal=vTecnico&&pctPre>0?Math.round(pv*(pctPre/100)):pcBase;
+    const item={id:'SVC'+uid(),nom:vSD||vST,pv,pc:pcReal,cant:1,sv:true,tecnico:vTecnico};
     setVI([...vItems,item]);
     // Si hay tecnico asignado, registrar en produccion del taller
     if(vTecnico){
@@ -752,6 +758,41 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
               <KPI lbl="💸 Gastos"          val={fm(tGa)} col={C.re} sub="Incluye nomina" onClick={()=>setTab('gastos')}/>
               <KPI lbl="🏆 Utilidad Neta"   val={fm(util)} col={util>=0?C.ye:C.re} sub="Ganancia - Gastos"/>
             </div>
+            {/* Caja estimada */}
+            {(()=>{
+              // Lo que le debes a empleados (pendiente de pagar)
+              const debeEmps=empProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.emp60,0);
+              const debeEmpsLav=lavProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.empParte,0);
+              const totalDebeEmps=debeEmps+debeEmpsLav;
+              // Adelantos pendientes de descontar
+              const adelPend=adelantos.filter(a=>!a.pagado).reduce((a,b)=>a+b.monto,0);
+              // Caja = todo lo que entro - gastos pagados - lo que le debes a empleados + adelantos ya dados
+              const caja=tvT-tGa-totalDebeEmps+adelPend;
+              return (
+                <div style={{background:C.ca,border:`2px solid ${C.ye}`,borderRadius:12,padding:14,marginBottom:10}}>
+                  <div style={{fontSize:10,fontWeight:700,letterSpacing:1,textTransform:'uppercase',color:C.mu,marginBottom:8}}>💵 Estimado en Caja</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:10}}>
+                    <div style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
+                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>Total cobrado</div>
+                      <div style={{fontSize:13,fontWeight:800,color:C.gr}}>{fm(tvT)}</div>
+                    </div>
+                    <div style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
+                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>Gastos pagados</div>
+                      <div style={{fontSize:13,fontWeight:800,color:C.re}}>{fm(tGa)}</div>
+                    </div>
+                    <div style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
+                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>Por pagar empleados</div>
+                      <div style={{fontSize:13,fontWeight:800,color:C.or}}>{fm(totalDebeEmps)}</div>
+                    </div>
+                    <div style={{background:'rgba(251,191,36,.15)',borderRadius:8,padding:10,textAlign:'center',border:`1px solid ${C.ye}`}}>
+                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>💵 En Caja</div>
+                      <div style={{fontSize:18,fontWeight:900,color:C.ye}}>{fm(caja)}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:10,color:C.mu}}>* Total cobrado - Gastos - Lo que debes a empleados + Adelantos ya dados</div>
+                </div>
+              );
+            })()}
             {/* Utilidad por periodo */}
             <Card style={{border:`1px solid ${C.ye}`}} ch={
               <div>
