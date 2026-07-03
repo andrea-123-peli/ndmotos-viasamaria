@@ -257,6 +257,8 @@ function App() {
   const [lavPct,setLavPct]   = useState(50);
   const [creds,setCreds]     = useState([]);
   const [adelantos,setAdelantos] = useState([]);
+  const [cajaInicial,setCajaInicial] = useState(0);
+  const [cajaCierres,setCajaCierres] = useState([]);
   const [negNit,setNegNit]    = useState('');
 
   // ── REFS (para guardar sin race conditions) ──
@@ -264,7 +266,7 @@ function App() {
   const rCom=useRef([]);       const rFia=useRef([]);    const rEmp=useRef([]);
   const rCli=useRef([]);       const rMeta=useRef(0);   const rHerr=useRef([]);
   const rEmps=useRef([]);      const rEmpProd=useRef([]); const rLavEmps=useRef([]);
-  const rLavProd=useRef([]);   const rLavPct=useRef(50); const rCreds=useRef([]); const rNegNit=useRef(''); const rAdelantos=useRef([]);
+  const rLavProd=useRef([]);   const rLavPct=useRef(50); const rCreds=useRef([]); const rNegNit=useRef(''); const rAdelantos=useRef([]); const rCajaInicial=useRef(0); const rCajaCierres=useRef([]);
 
   // ── STORAGE ──
   useEffect(()=>{
@@ -301,13 +303,15 @@ function App() {
           set('creds',rCreds,setCreds);
           if(d.negNit!=null){rNegNit.current=d.negNit;setNegNit(d.negNit);}
           if(d.adelantos){rAdelantos.current=d.adelantos;setAdelantos(d.adelantos);}
+          if(d.cajaInicial!=null){rCajaInicial.current=d.cajaInicial;setCajaInicial(d.cajaInicial);}
+          if(d.cajaCierres){rCajaCierres.current=d.cajaCierres;setCajaCierres(d.cajaCierres);}
         }
       }catch(e){}
       if(!done){done=true;clearTimeout(to);setReady(true);}
     })();
     return ()=>clearTimeout(to);
   },[]);
-const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,adelantos:rAdelantos.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
+const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,adelantos:rAdelantos.current,cajaInicial:rCajaInicial.current,cajaCierres:rCajaCierres.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
   
   const sInv    = d => { rInv.current=d;    setInv(d);    guardar({inv:d});    };
   const sVen    = d => { rVen.current=d;    setVen(d);    guardar({ven:d});    };
@@ -326,6 +330,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const sCreds  = d => { rCreds.current=d;  setCreds(d);  guardar({creds:d});  };
   const sNegNit = v => { rNegNit.current=v; setNegNit(v); guardar({negNit:v}); };
   const sAdelantos = d => { rAdelantos.current=d; setAdelantos(d); guardar({adelantos:d}); };
+  const sCajaInicial = v => { rCajaInicial.current=v; setCajaInicial(v); guardar({cajaInicial:v}); };
+  const sCajaCierres = d => { rCajaCierres.current=d; setCajaCierres(d); guardar({cajaCierres:d}); };
 
   const [showBackup,setShowBackup] = useState(false);
   const [perDe,setPerDe]=useState('');
@@ -521,7 +527,12 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
     const venta={id:uid(),fecha:new Date().toISOString(),tipo:'venta',cliente:vCli2||'Cliente general',clienteEmail:vClObj?vClObj.email:'',clienteNit:vClObj?vClObj.nit:'',clienteEmpresa:vClObj?vClObj.empresa:false,desc,total,ganancia,pago:vPago,items:[...vItems],iva:ivaMonto};
     sInv(newInv);
     sVen([...rVen.current,venta]);
-    if(vPago==='Fiado') sFia([...rFia.current,{id:uid(),nombre:vCli2||'Cliente',tel:'',desc,valor:total,fecha:new Date().toISOString(),vence:'',pagado:false}]);
+    if(vPago==='Fiado'){
+      const fiaId=uid();
+      sFia([...rFia.current,{id:fiaId,nombre:vCli2||'Cliente',tel:'',desc,valor:total,fecha:new Date().toISOString(),vence:'',pagado:false,ventaId:venta.id}]);
+      // Marcar la venta con el id del fiado para excluirla de caja hasta que se cobre
+      venta.fiaId=fiaId;
+    }
     setTk(venta);
     setVI([]);setVB('');setVS(null);setVC('1');setVPr('');setVCl('');setVClObj(null);setVTecnico('');setEditVenta(null);setVDNom('');setVDPc('');setVDPv('');
     toast2('Venta de '+fm(total)+' registrada','ok');
@@ -660,6 +671,9 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   // ── FORMULARIO EMPLEADOS ──
   const [epEmp,setEpEmp]=useState('');
   const [adelModal,setAdelModal]=useState(null);
+  const [cierreModal,setCierreModal]=useState(false);
+  const [cierreMonto,setCierreMonto]=useState('');
+  const [cajaCalc,setCajaCalc]=useState(0);
   const [adelMonto,setAdelMonto]=useState('');
   const [adelDesc,setAdelDesc]=useState('');
   const [adelFecha,setAdelFecha]=useState(''); const [epNomNuevo,setEpNomNuevo]=useState('');
@@ -760,36 +774,100 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
             </div>
             {/* Caja estimada */}
             {(()=>{
-              // Lo que le debes a empleados (pendiente de pagar)
-              const debeEmps=empProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.emp60,0);
-              const debeEmpsLav=lavProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.empParte,0);
-              const totalDebeEmps=debeEmps+debeEmpsLav;
-              // Adelantos pendientes de descontar
-              const adelPend=adelantos.filter(a=>!a.pagado).reduce((a,b)=>a+b.monto,0);
-              // Caja = todo lo que entro - gastos pagados - lo que le debes a empleados + adelantos ya dados
-              const caja=tvT-tGa-totalDebeEmps+adelPend;
+              const ultimoCierre=cajaCierres.length>0?cajaCierres[cajaCierres.length-1]:null;
+              const fechaCorte=ultimoCierre?ultimoCierre.fecha:null;
+              const saldoIni=ultimoCierre?ultimoCierre.saldo:cajaInicial;
+
+              const venD=ven.filter(v=>!fechaCorte||v.fecha>fechaCorte);
+              // Fiados no cobrados: no entran a caja hasta que se paguen
+              const fiadosNoCobradosIds=fia.filter(f=>!f.pagado&&f.ventaId).map(f=>f.ventaId);
+              const eVentasInv=venD.filter(v=>v.tipo==='venta'&&!fiadosNoCobradosIds.includes(v.id)).reduce((a,b)=>a+b.total,0);
+              const eTaller=venD.filter(v=>v.tipo==='empleado').reduce((a,b)=>a+b.total,0);
+              const eLav=venD.filter(v=>v.tipo==='lavado').reduce((a,b)=>a+b.total,0);
+              const fiadosPagados=fia.filter(f=>f.pagado&&(!fechaCorte||(f.fechaPago||f.fecha)>fechaCorte)).reduce((a,b)=>a+b.valor,0);
+              const totalEntradas=eVentasInv+eTaller+eLav; // fiados ya incluidos en eVentasInv cuando se cobran
+
+              const gasD=gas.filter(g=>!fechaCorte||g.fecha>fechaCorte);
+              const sCompras=gasD.filter(g=>g.tipo==='Compra Mercancia').reduce((a,b)=>a+b.monto,0);
+              const sAbonos=gasD.filter(g=>g.tipo==='Abono Proveedor').reduce((a,b)=>a+b.monto,0);
+              const sNomina=gasD.filter(g=>g.tipo==='Nomina').reduce((a,b)=>a+b.monto,0);
+              const sOtros=gasD.filter(g=>g.tipo!=='Compra Mercancia'&&g.tipo!=='Abono Proveedor'&&g.tipo!=='Nomina').reduce((a,b)=>a+b.monto,0);
+              const adelD=adelantos.filter(a=>!a.pagado&&(!fechaCorte||a.fecha>fechaCorte)).reduce((a,b)=>a+b.monto,0);
+              const empPendD=empProd.filter(p=>!p.pagado&&(!fechaCorte||p.fecha>fechaCorte)).reduce((a,b)=>a+b.emp60,0);
+              const lavPendD=lavProd.filter(p=>!p.pagado&&(!fechaCorte||p.fecha>fechaCorte)).reduce((a,b)=>a+b.empParte,0);
+              const adelTotalPend=adelantos.filter(a=>!a.pagado&&(!fechaCorte||a.fecha>fechaCorte)).reduce((a,b)=>a+b.monto,0);
+              const sPorPagarEmps=Math.max(0,empPendD+lavPendD-adelTotalPend);
+              const totalSalidas=sCompras+sAbonos+sNomina+sOtros; // adelantos ya incluidos en sOtros
+              // sPorPagarEmps NO se descuenta de caja - solo cuando se pague (va a sNomina)
+              const caja2=saldoIni+totalEntradas-totalSalidas;
+
               return (
-                <div style={{background:C.ca,border:`2px solid ${C.ye}`,borderRadius:12,padding:14,marginBottom:10}}>
-                  <div style={{fontSize:10,fontWeight:700,letterSpacing:1,textTransform:'uppercase',color:C.mu,marginBottom:8}}>💵 Estimado en Caja</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:10}}>
-                    <div style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
-                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>Total cobrado</div>
-                      <div style={{fontSize:13,fontWeight:800,color:C.gr}}>{fm(tvT)}</div>
-                    </div>
-                    <div style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
-                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>Gastos pagados</div>
-                      <div style={{fontSize:13,fontWeight:800,color:C.re}}>{fm(tGa)}</div>
-                    </div>
-                    <div style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
-                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>Por pagar empleados</div>
-                      <div style={{fontSize:13,fontWeight:800,color:C.or}}>{fm(totalDebeEmps)}</div>
-                    </div>
-                    <div style={{background:'rgba(251,191,36,.15)',borderRadius:8,padding:10,textAlign:'center',border:`1px solid ${C.ye}`}}>
-                      <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>💵 En Caja</div>
-                      <div style={{fontSize:18,fontWeight:900,color:C.ye}}>{fm(caja)}</div>
-                    </div>
+                <div style={{background:C.ca,border:`2px solid ${C.ye}`,borderRadius:12,padding:16,marginBottom:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                    <div style={{fontSize:13,fontWeight:800,color:C.ye}}>💵 Estado de Caja</div>
+                    {fechaCorte&&<div style={{fontSize:10,color:C.mu}}>Desde: {fDT(fechaCorte)}</div>}
                   </div>
-                  <div style={{fontSize:10,color:C.mu}}>* Total cobrado - Gastos - Lo que debes a empleados + Adelantos ya dados</div>
+
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10,background:C.su,borderRadius:8,padding:'8px 12px',flexWrap:'wrap'}}>
+                    <span style={{fontSize:11,color:C.mu,whiteSpace:'nowrap'}}>
+                      {ultimoCierre?'Saldo desde ultimo cierre:':'Saldo inicial en caja ($):'}
+                    </span>
+                    {!ultimoCierre
+                      ? <Inp v={cajaInicial||''} s={v=>sCajaInicial(parseFloat(v)||0)} type="number" ph="0" style={{maxWidth:130}}/>
+                      : <span style={{fontWeight:800,color:C.ye,fontSize:14}}>{fm(ultimoCierre.saldo)}</span>
+                    }
+                    {ultimoCierre&&<div style={{fontSize:10,color:C.mu,width:'100%'}}>
+                      Cierre: {fDT(ultimoCierre.fecha)} · Todo lo nuevo se acumula desde esa fecha
+                    </div>}
+                  </div>
+
+                  <div style={{fontSize:10,color:C.gr,fontWeight:700,textTransform:'uppercase',marginBottom:6}}>📥 Entradas — {fm(saldoIni+totalEntradas)}</div>
+                  {(()=>{
+                      const eVentasInvSolo=venD.filter(v=>v.tipo==='venta'&&v.items&&v.items.some(it=>!it.sv&&!it.directo)).reduce((a,b)=>a+b.total,0);
+                      const eServicios=venD.filter(v=>v.tipo==='venta'&&v.items&&v.items.every(it=>it.sv)).reduce((a,b)=>a+b.total,0);
+                      const eDirectas=venD.filter(v=>v.tipo==='venta'&&v.items&&v.items.some(it=>it.directo)).reduce((a,b)=>a+b.total,0);
+                      return (
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:10}}>
+                          {[
+                            {lbl:'Saldo inicial',val:saldoIni,col:C.mu},
+                            {lbl:'🔩 Inventario',val:eVentasInvSolo,col:C.gr},
+                            {lbl:'🔧 Servicios',val:eServicios,col:C.gr},
+                            {lbl:'🚿 Lavadero',val:eLav,col:C.cy},
+                            {lbl:'🔧 Taller',val:eTaller,col:C.bl},
+                            {lbl:'💰 Venta Directa',val:eDirectas,col:C.gr},
+                          ].map((it,i)=>(
+                            <div key={i} style={{background:'rgba(34,197,94,.08)',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                              <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:2}}>{it.lbl}</div>
+                              <div style={{fontSize:13,fontWeight:800,color:it.col}}>{fm(it.val)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  
+
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(239,68,68,.08)',borderRadius:8,padding:'10px 14px',marginBottom:8}}>
+                    <span style={{fontSize:11,color:C.mu,textTransform:'uppercase',fontWeight:700}}>📤 Gastos del período</span>
+                    <span style={{fontSize:16,fontWeight:800,color:C.re}}>{fm(totalSalidas)}</span>
+                  </div>
+                  {/* Por pagar empleados dentro de caja */}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.08)',borderRadius:8,padding:'8px 12px',marginBottom:12}}>
+                    <span style={{fontSize:11,color:C.mu}}>👷 Por pagar a empleados</span>
+                    <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(Math.max(0,empProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.emp60,0)+lavProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.empParte,0)-adelantos.filter(a=>!a.pagado).reduce((a,b)=>a+b.monto,0)))}</span>
+                  </div>
+
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.15)',borderRadius:10,padding:'12px 16px',border:`2px solid ${C.ye}`,marginBottom:10}}>
+                    <div>
+                      <div style={{fontSize:11,color:C.mu,textTransform:'uppercase',marginBottom:2}}>💵 En Caja Ahora</div>
+                      <div style={{fontSize:10,color:C.mu}}>{fm(saldoIni+totalEntradas)} entradas — {fm(totalSalidas)} salidas</div>
+                    </div>
+                    <div style={{fontSize:30,fontWeight:900,color:caja2>=0?C.ye:C.re}}>{fm(caja2)}</div>
+                  </div>
+
+                  <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+                    <Btn onClick={()=>{setCajaCalc(caja2);setCierreMonto('0');setCierreModal(true);}} col={C.bl} ch="🔒 Cerrar Caja"/>
+                    {cajaCierres.length>0&&<div style={{fontSize:11,color:C.mu}}>Ultimo cierre: {fDT(cajaCierres[cajaCierres.length-1].fecha)} · Saldo: {fm(cajaCierres[cajaCierres.length-1].saldo)}</div>}
+                  </div>
                 </div>
               );
             })()}
@@ -954,18 +1032,15 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   {vTipo==='directo'&&(
                     <div>
                       <FG lbl="Nombre del producto" ch={<Inp v={vDNom} s={setVDNom} ph="Ej: Aceite 20W50, Llanta..."/>}/>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                        <FG lbl="Precio de compra ($)" ch={<Inp v={vDPc} s={setVDPc} type="number" ph="0"/>}/>
-                        <FG lbl="Precio de venta ($)" ch={<Inp v={vDPv} s={setVDPv} type="number" ph="0" style={{borderColor:C.gr}}/>}/>
-                      </div>
-                      {vDPc&&vDPv&&<div style={{background:'rgba(34,197,94,.1)',borderRadius:8,padding:'8px 12px',marginBottom:10,fontSize:13}}>
-                        Ganancia: <span style={{color:C.gr,fontWeight:800}}>{fm(parseFloat(vDPv||0)-parseFloat(vDPc||0))}</span>
+                      <FG lbl="Precio de venta ($)" ch={<Inp v={vDPv} s={setVDPv} type="number" ph="0" style={{borderColor:C.gr}}/>}/>
+                      {vDPv&&<div style={{background:'rgba(34,197,94,.1)',borderRadius:8,padding:'8px 12px',marginBottom:10,fontSize:13}}>
+                        Ganancia: <span style={{color:C.gr,fontWeight:800}}>{fm(parseFloat(vDPv||0))}</span>
                       </div>}
                       <Btn onClick={()=>{
-                        const pc=parseFloat(vDPc)||0, pv=parseFloat(vDPv)||0;
+                        const pv=parseFloat(vDPv)||0;
                         if(!vDNom.trim()) return toast2('Escribe el nombre del producto','err');
                         if(!pv) return toast2('Ingresa el precio de venta','err');
-                        setVI([...vItems,{id:'D'+uid(),nom:vDNom.trim(),pv,pc,cant:1,sv:false,directo:true}]);
+                        setVI([...vItems,{id:'D'+uid(),nom:vDNom.trim(),pv,pc:0,cant:1,sv:false,directo:true}]);
                         setVDNom('');setVDPc('');setVDPv('');
                         toast2('Producto agregado','ok');
                       }} col={C.gr} full ch="+ Agregar Venta Directa" style={{marginBottom:12}}/>
@@ -1687,7 +1762,12 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                   <TD style={{fontSize:12}} ch={f2.desc||'-'}/>
                                   <TD style={{color:C.pu,fontWeight:700}} ch={fm(f2.valor)}/>
                                   <TD style={{fontSize:12,color:vencido?C.re:C.mu}} ch={(f2.vence?fD(f2.vence):'Sin fecha')+(vencido?' ⚠':'')}/>
-                                 <TD ch={<div style={{display:'flex',gap:4}}><Btn sm col={C.gr} onClick={()=>sFia(fia.map(x=>x.id===f2.id?{...x,pagado:true}:x))} ch="✓ Pago"/><Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sFia(fia.filter(x=>x.id!==f2.id));}} ch="🗑"/></div>}/>                                 </tr>
+                                 <TD ch={<div style={{display:'flex',gap:4}}><Btn sm col={C.gr} onClick={()=>{
+                                      const fechaPagoNow=new Date().toISOString();
+                                      sFia(fia.map(x=>x.id===f2.id?{...x,pagado:true,fechaPago:fechaPagoNow}:x));
+                                      // La venta ya existe, solo ahora entra a caja
+                                      toast2('Fiado cobrado. Ya aparece en caja','ok');
+                                    }} ch="✓ Pago"/><Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sFia(fia.filter(x=>x.id!==f2.id));}} ch="🗑"/></div>}/>                                 </tr>
                               );
                             })}
                             {!fPend.length&&<tr><td colSpan={6} style={{textAlign:'center',padding:28,color:C.mu}}>✅ Sin fiados pendientes</td></tr>}
@@ -1890,10 +1970,13 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   const h3=hoy(), mes=h3.slice(0,7), sem=semana();
                   const pe=empProd.filter(p=>p.empleado===e2.nom);
                   const tH=pe.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
-                  const tS=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado).reduce((a,b)=>a+b.valor,0);
+                  const peSemTodo=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin);
+                  const peSem=peSemTodo.filter(p=>!p.pagado);
+                  const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
-                  const pagoSem=Math.round(tS*(e2.pct/100));
+                  // Solo lo pendiente para calcular pago
+                  const pagoSem=peSem.reduce((a,b)=>a+(b.emp60||Math.round(b.valor*(b.pct||e2.pct)/100)),0);
                   return (
                     <div key={e2.nom} style={{background:C.ca,border:`1px solid ${C.bo}`,borderLeft:`4px solid ${C.bl}`,borderRadius:10,padding:14,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
@@ -1913,33 +1996,24 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                         <span style={{fontSize:11,color:C.or}}>Neg: {100-e2.pct}%</span>
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>
-                        {(()=>{
-                          const peL=lavProd.filter(p=>p.empleado===e2.nom);
-                          const tHL=peL.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
-                          const tSL=peL.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado).reduce((a,b)=>a+b.valor,0);
-                          const tML=peL.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
-                          const tTL=peL.reduce((a,b)=>a+b.valor,0);
-                          const tieneL=tTL>0;
-                          return [
-                            {lbl:'Hoy',tot:tH+tHL,t:tH,l:tHL,col:C.bl},
-                            {lbl:'Esta semana',tot:tS+tSL,t:tS,l:tSL,col:C.cy},
-                            {lbl:'Este mes',tot:tM+tML,t:tM,l:tML,col:C.or},
-                            {lbl:'Total',tot:tT+tTL,t:tT,l:tTL,col:C.pu}
-                          ].map((it,i)=>(
-                            <div key={i} style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
-                              <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>{it.lbl}</div>
-                              <div style={{fontSize:16,fontWeight:800,color:it.col}}>{fm(it.tot)}</div>
-                              {tieneL&&<div style={{fontSize:9,color:C.mu,marginTop:1}}>🔧{fm(it.t)} + 🚿{fm(it.l)}</div>}
-                              <div style={{fontSize:9,color:C.gr,marginTop:2}}>{e2.pct}%: {fm(Math.round(it.tot*(e2.pct/100)))}</div>
-                            </div>
-                          ));
-                        })()}
+                        {[
+                          {lbl:'Hoy',val:tH,col:C.bl},
+                          {lbl:'Esta semana',val:tS,col:C.cy},
+                          {lbl:'Este mes',val:tM,col:C.or},
+                          {lbl:'Total',val:tT,col:C.pu}
+                        ].map((it,i)=>(
+                          <div key={i} style={{background:C.su,borderRadius:8,padding:10,textAlign:'center'}}>
+                            <div style={{fontSize:9,color:C.mu,textTransform:'uppercase',marginBottom:3}}>{it.lbl}</div>
+                            <div style={{fontSize:16,fontWeight:800,color:it.col}}>{fm(it.val)}</div>
+                            <div style={{fontSize:9,color:C.gr,marginTop:2}}>{e2.pct}%: {fm(Math.round(it.val*(e2.pct/100)))}</div>
+                          </div>
+                        ))}
                       </div>
                       {(()=>{
                         const adelEmp=adelantos.filter(a=>a.nom===e2.nom&&!a.pagado);
                         const totalAdel=adelEmp.reduce((a,b)=>a+b.monto,0);
                         const pagoReal=Math.max(0,pagoSem-totalAdel);
-                        return tS>0&&(
+                        return pagoSem>0&&(
                           <div>
                             {adelEmp.length>0&&(
                               <div style={{background:'rgba(239,68,68,.1)',border:`1px solid ${C.re}`,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
@@ -1960,32 +2034,28 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               <div>
                                 <div style={{fontSize:11,color:C.cy,fontWeight:700}}>💰 Pago a {e2.nom}</div>
                                 <div style={{fontSize:12,color:C.mu}}>Semana del {sem.ini} al {sem.fin}</div>
-                                <div style={{fontSize:12,color:C.gr}}>🔧 Taller ({e2.pct}%): {fm(pagoSem)}</div>
-                                {(()=>{
-                                  const peL3=lavProd.filter(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado);
-                                  const tSL3=peL3.reduce((a,b)=>a+b.valor,0);
-                                  const lavObj3=lavEmps.find(e=>e.nom===e2.nom);
-                                  const pctL3=lavObj3?lavObj3.pct:e2.pct;
-                                  const pagoLav3=Math.round(tSL3*(pctL3/100));
-                                  return tSL3>0&&<div style={{fontSize:12,color:C.cy}}>🚿 Lavadero ({pctL3}%): {fm(pagoLav3)}</div>;
-                                })()}
-                                {totalAdel>0&&<div style={{fontSize:12,color:C.re}}>Adelantos: -{fm(totalAdel)}</div>}
-                                <div style={{fontSize:15,fontWeight:800,color:C.gr}}>A pagar: {fm(pagoReal+(()=>{const peL3=lavProd.filter(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado);const tSL3=peL3.reduce((a,b)=>a+b.valor,0);const lavObj3=lavEmps.find(e=>e.nom===e2.nom);return Math.round(tSL3*((lavObj3?lavObj3.pct:e2.pct)/100));})())}</div>
+                                <div style={{background:C.su,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
+                                  <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}>
+                                    <span style={{color:C.mu}}>🔧 Produccion semana ({e2.pct}% de {fm(tS)})</span>
+                                    <span style={{color:C.gr,fontWeight:700}}>{fm(pagoSem)}</span>
+                                  </div>
+                                  {totalAdel>0&&<div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3,borderTop:`1px solid ${C.bo}`,paddingTop:4}}>
+                                    <span style={{color:C.mu}}>Adelantos a descontar</span>
+                                    <span style={{color:C.re,fontWeight:700}}>-{fm(totalAdel)}</span>
+                                  </div>}
+                                  <div style={{display:'flex',justifyContent:'space-between',fontSize:15,fontWeight:800,borderTop:`1px solid ${C.bo}`,paddingTop:6,marginTop:4}}>
+                                    <span>Total a pagar</span>
+                                    <span style={{color:C.gr}}>{fm(pagoReal)}</span>
+                                  </div>
+                                </div>
                               </div>
                               <Btn sm col={C.gr} onClick={()=>{
                                 // Produccion lavadero de esta semana
-                                const peL2=lavProd.filter(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado);
-                                const tSL2=peL2.reduce((a,b)=>a+b.valor,0);
-                                const lavObj2=lavEmps.find(e=>e.nom===e2.nom);
-                                const pctL2=lavObj2?lavObj2.pct:e2.pct;
-                                const pagoLav2=Math.round(tSL2*(pctL2/100));
-                                const totalPago=pagoReal+pagoLav2;
-                                sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Produccion (Taller'+(tSL2>0?'+Lavadero':'')+')',periodo:sem.ini+' al '+sem.fin,monto:totalPago,pago:'Efectivo'}]);
+                                sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Taller',periodo:sem.ini+' al '+sem.fin,monto:pagoReal,pago:'Efectivo'}]);
+                                sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Nomina',desc:'Pago '+e2.nom+' - Taller '+sem.ini+' al '+sem.fin,monto:pagoReal,pago:'Efectivo'}]);
                                 sEmpProd(empProd.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
-                                if(tSL2>0) sLavProd(rLavProd.current.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
-                                else sLavProd(rLavProd.current);
                                 sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
-                                toast2('Pago total de '+fm(totalPago)+' a '+e2.nom+' registrado','ok');
+                                toast2('Pago de '+fm(pagoReal)+' a '+e2.nom+' (Taller) registrado','ok');
                               }} ch="✅ Registrar pago"/>
                             </div>
                           </div>
@@ -2004,8 +2074,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                 <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:14,alignItems:'center'}}>
                   <select value={epFiltro} onChange={e=>setEpFiltro(e.target.value)}
                     style={{background:C.su,border:`1px solid ${C.bo}`,borderRadius:8,color:C.tx,fontSize:13,padding:'8px 12px',outline:'none',flex:1,minWidth:120}}>
-                    <option value="">Todos los empleados</option>
-                    {[...new Set([...emps.map(e=>e.nom),...lavEmps.map(e=>e.nom)])].map(nom=><option key={nom} value={nom}>{nom}</option>)}
+                    <option value="">Todos los tecnicos</option>
+                    {emps.map(e=><option key={e.nom} value={e.nom}>{e.nom}</option>)}
                   </select>
                   <Inp v={epFDe} s={setEpFDe} type="date" style={{width:150}}/>
                   <Inp v={epFHa} s={setEpFHa} type="date" style={{width:150}}/>
@@ -2017,21 +2087,19 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   }} ch="Mes"/>
                 </div>
                 {(()=>{
-                  const filT=empProd.filter(p=>{
+                  const fil=empProd.filter(p=>{
                     if(epFiltro&&p.empleado!==epFiltro) return false;
                     if(epFDe&&p.fecha<epFDe) return false;
                     if(epFHa&&p.fecha>epFHa) return false;
                     return true;
-                  });
-                  const filL=lavProd.filter(p=>{
-                    if(epFiltro&&p.empleado!==epFiltro) return false;
-                    if(epFDe&&p.fecha<epFDe) return false;
-                    if(epFHa&&p.fecha>epFHa) return false;
-                    return true;
-                  }).map(p=>({...p,emp60:p.empParte,neg40:p.negParte,desc:p.servicio,tipo:'🚿 Lavadero'}));
-                  const fil=[...filT.map(p=>({...p,tipo:'🔧 Taller'})),...filL].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+                  }).map(p=>({...p,tipo:'🔧 Taller'})).sort((a,b)=>b.fecha.localeCompare(a.fecha));
                   const totVal=fil.reduce((a,b)=>a+b.valor,0);
-                  const tot60=fil.reduce((a,b)=>a+b.emp60,0);
+                  const filPend=fil.filter(p=>!p.pagado);
+                  const tot60Bruto=filPend.reduce((a,b)=>a+(b.emp60||0),0);
+                  // Descontar adelantos pendientes de los empleados en el filtro
+                  const empsEnFil=[...new Set(filPend.map(p=>p.empleado))];
+                  const adelPendFil=adelantos.filter(a=>!a.pagado&&empsEnFil.includes(a.nom)).reduce((a,b)=>a+b.monto,0);
+                  const tot60=Math.max(0,tot60Bruto-adelPendFil);
                   const tot40=fil.reduce((a,b)=>a+b.neg40,0);
                   const porEmp={};
                   fil.forEach(p=>{if(!porEmp[p.empleado])porEmp[p.empleado]={val:0,emp60:0,neg40:0};porEmp[p.empleado].val+=p.valor;porEmp[p.empleado].emp60+=p.emp60;porEmp[p.empleado].neg40+=p.neg40;});
@@ -2039,7 +2107,11 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     <div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:14}}>
                         <div style={{background:C.su,borderRadius:8,padding:12,textAlign:'center'}}><div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Total Producido</div><div style={{fontSize:22,fontWeight:800,color:C.bl}}>{fm(totVal)}</div><div style={{fontSize:10,color:C.mu}}>{fil.length} servicio(s)</div></div>
-                        <div style={{background:'rgba(34,197,94,.1)',borderRadius:8,padding:12,textAlign:'center'}}><div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Para Tecnicos</div><div style={{fontSize:22,fontWeight:800,color:C.gr}}>{fm(tot60)}</div></div>
+                        <div style={{background:'rgba(34,197,94,.1)',borderRadius:8,padding:12,textAlign:'center'}}>
+                          <div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Para Tecnicos</div>
+                          <div style={{fontSize:22,fontWeight:800,color:C.gr}}>{fm(tot60)}</div>
+                          {adelPendFil>0&&<div style={{fontSize:10,color:C.re}}>(-{fm(adelPendFil)} adelantos)</div>}
+                        </div>
                         <div style={{background:'rgba(255,107,26,.1)',borderRadius:8,padding:12,textAlign:'center'}}><div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Para el Negocio</div><div style={{fontSize:22,fontWeight:800,color:C.or}}>{fm(tot40)}</div></div>
                       </div>
                       {Object.keys(porEmp).length>1&&(
@@ -2056,13 +2128,12 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                       )}
                       <div style={{overflowX:'auto'}}>
                         <table style={{width:'100%',borderCollapse:'collapse'}}>
-                          <thead><tr><TH ch="Fecha"/><TH ch="Empleado"/><TH ch="Tipo"/><TH ch="Servicio"/><TH ch="Total"/><TH ch="% Empleado"/><TH ch="% Negocio"/><TH ch=""/></tr></thead>
+                          <thead><tr><TH ch="Fecha"/><TH ch="Empleado"/><TH ch="Servicio"/><TH ch="Total"/><TH ch="% Empleado"/><TH ch="% Negocio"/><TH ch=""/></tr></thead>
                           <tbody>
                             {fil.map((p,i)=>(
                               <tr key={i} style={{borderBottom:`1px solid ${C.bo}`}}>
                                 <TD style={{fontSize:12,color:C.mu,whiteSpace:'nowrap'}} ch={p.fecha}/>
                                 <TD style={{fontWeight:700,color:C.bl}} ch={p.empleado}/>
-                                <TD style={{fontSize:11}} ch={p.tipo||'🔧 Taller'}/>
                                 <TD style={{fontSize:12}} ch={<span>{p.desc}{p.pagado&&<span style={{fontSize:10,color:C.gr,marginLeft:6}}>✓ pagado</span>}</span>}/>
                                 <TD style={{fontWeight:700}} ch={fm(p.valor)}/>
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.emp60)+' ('+p.pct+'%)'}/>
@@ -2181,10 +2252,13 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   const h3=hoy(), mes=h3.slice(0,7), sem=semana();
                   const pe=lavProd.filter(p=>p.empleado===e2.nom);
                   const tH=pe.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
-                  const tS=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin&&!p.pagado).reduce((a,b)=>a+b.valor,0);
+                  const peSemTodo=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin);
+                  const peSem=peSemTodo.filter(p=>!p.pagado);
+                  const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
-                  const pagoSem=Math.round(tS*(e2.pct/100));
+                  // Solo lo pendiente para calcular pago
+                  const pagoSem=peSem.reduce((a,b)=>a+(b.empParte||Math.round(b.valor*(b.pct||e2.pct)/100)),0);
                   return (
                     <div key={e2.nom} style={{background:C.ca,border:`1px solid ${C.bo}`,borderLeft:`4px solid ${C.cy}`,borderRadius:10,padding:14}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
@@ -2216,7 +2290,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                         const adelEmpL=adelantos.filter(a=>a.nom===e2.nom&&!a.pagado);
                         const totalAdelL=adelEmpL.reduce((a,b)=>a+b.monto,0);
                         const pagoRealL=Math.max(0,pagoSem-totalAdelL);
-                        return tS>0&&(
+                        return pagoSem>0&&(
                           <div>
                             {adelEmpL.length>0&&(
                               <div style={{background:'rgba(239,68,68,.1)',border:`1px solid ${C.re}`,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
@@ -2243,6 +2317,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                               </div>
                               <Btn sm col={C.gr} onClick={()=>{
                                 sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Lavadero',periodo:sem.ini+' al '+sem.fin,monto:pagoRealL,pago:'Efectivo'}]);
+                                sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Nomina',desc:'Pago '+e2.nom+' - Lavadero '+sem.ini+' al '+sem.fin,monto:pagoRealL,pago:'Efectivo'}]);
                                 sLavProd(lavProd.map(p=>p.empleado===e2.nom&&p.fecha>=sem.ini&&p.fecha<=sem.fin?{...p,pagado:true}:p));
                                 sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
                                 toast2('Pago de '+fm(pagoRealL)+' a '+e2.nom+' registrado','ok');
@@ -2284,7 +2359,8 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     return true;
                   }).slice().reverse();
                   const totVal=fil.reduce((a,b)=>a+b.valor,0);
-                  const totEmp=fil.reduce((a,b)=>a+b.empParte,0);
+                  const filPendLav=fil.filter(p=>!p.pagado);
+                  const totEmp=filPendLav.reduce((a,b)=>a+b.empParte,0); // solo pendiente
                   const totNeg=fil.reduce((a,b)=>a+b.negParte,0);
                   return (
                     <div>
@@ -2330,6 +2406,56 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
       {/* ║           MODALES            ║ */}
       {/* ╚══════════════════════════════╝ */}
 
+      {/* Modal Cierre de Caja */}
+      <Modal open={cierreModal} onClose={()=>setCierreModal(false)} ch={
+        <div>
+          <div style={{fontSize:18,fontWeight:800,color:C.ye,marginBottom:4}}>🔒 Cerrar Caja</div>
+          <div style={{fontSize:12,color:C.mu,marginBottom:16}}>Total en caja: <span style={{color:C.ye,fontWeight:800}}>{fm(cajaCalc)}</span></div>
+          <div style={{background:'rgba(251,191,36,.1)',border:`1px solid ${C.ye}`,borderRadius:8,padding:12,marginBottom:16,fontSize:12,color:C.tx}}>
+            ¿Cuánto dinero dejas en la caja para el próximo período? El resto se entiende que lo retiraste (utilidades, sueldo socios, etc.)
+          </div>
+          <FG lbl="Monto que dejas en caja ($) — escribe 0 si no dejas nada" ch={
+            <Inp v={cierreMonto} s={setCierreMonto} type="number" ph="0" style={{borderColor:C.ye,fontSize:18,textAlign:'center'}}/>
+          }/>
+          <div style={{display:'flex',gap:8,marginBottom:8}}>
+            <Btn sm col="ghost" onClick={()=>setCierreMonto('0')} ch="Dejar $0"/>
+            <Btn sm col="ghost" onClick={()=>setCierreMonto(String(cajaCalc))} ch={'Dejar todo: '+fm(cajaCalc)}/>
+          </div>
+          {cierreMonto!==''&&(
+            <div style={{background:C.su,borderRadius:8,padding:12,marginBottom:12,fontSize:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{color:C.mu}}>Total en caja</span>
+                <span style={{fontWeight:700}}>{fm(cajaCalc)}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{color:C.mu}}>Dejas en caja</span>
+                <span style={{color:C.ye,fontWeight:700}}>{fm(parseFloat(cierreMonto)||0)}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',borderTop:`1px solid ${C.bo}`,paddingTop:6}}>
+                <span style={{color:C.mu}}>Retiras</span>
+                <span style={{color:C.gr,fontWeight:800}}>{fm(Math.max(0,cajaCalc-(parseFloat(cierreMonto)||0)))}</span>
+              </div>
+            </div>
+          )}
+          <div style={{display:'flex',gap:10}}>
+            <Btn onClick={()=>{
+              const saldoNuevo=parseFloat(cierreMonto)||0;
+              if(saldoNuevo>cajaCalc) return toast2('No puedes dejar más de lo que hay en caja','err');
+              const nuevoCierre={id:uid(),fecha:new Date().toISOString(),saldo:saldoNuevo,totalCaja:cajaCalc,retirado:cajaCalc-saldoNuevo};
+              const nuevosCierres=[...rCajaCierres.current,nuevoCierre];
+              rCajaCierres.current=nuevosCierres;
+              setCajaCierres(nuevosCierres);
+              rCajaInicial.current=saldoNuevo;
+              setCajaInicial(saldoNuevo);
+              guardar({cajaCierres:nuevosCierres,cajaInicial:saldoNuevo});
+              setCierreModal(false);
+              toast2('Caja cerrada. Saldo nuevo: '+fm(saldoNuevo)+' · Retiraste: '+fm(cajaCalc-saldoNuevo),'ok');
+            }} col={C.ye} style={{flex:1,justifyContent:'center'}} ch="🔒 Confirmar Cierre"/>
+            <Btn onClick={()=>setCierreModal(false)} col="ghost" ch="Cancelar"/>
+          </div>
+        </div>
+      }/>
+
       {/* Modal Adelanto */}
       <Modal open={!!adelModal} onClose={()=>setAdelModal(null)} ch={adelModal&&(
         <div>
@@ -2341,10 +2467,14 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
             <Btn onClick={()=>{
               const monto=parseFloat(adelMonto);
               if(!monto) return toast2('Ingresa el monto','err');
-              sAdelantos([...rAdelantos.current,{id:uid(),nom:adelModal.nom,tipo:adelModal.tipo,
-                fecha:adelFecha||hoy(),desc:adelDesc||'Adelanto',monto,pagado:false}]);
+              const nuevoAdel={id:uid(),nom:adelModal.nom,tipo:adelModal.tipo,
+                fecha:adelFecha||hoy(),desc:adelDesc||'Adelanto',monto,pagado:false};
+              sAdelantos([...rAdelantos.current,nuevoAdel]);
+              sGas([...rGas.current,{id:nuevoAdel.id+'g',fecha:new Date().toISOString(),
+                tipo:'Adelanto Empleado',desc:'Adelanto a '+adelModal.nom+': '+(adelDesc||'sin descripcion'),
+                monto,pago:'Efectivo'}]);
               setAdelModal(null);
-              toast2('Adelanto de '+fm(monto)+' registrado para '+adelModal.nom,'ok');
+              toast2('Adelanto de '+fm(monto)+' registrado y descontado de caja','ok');
             }} col={C.ye} style={{flex:1,justifyContent:'center'}} ch="💰 Registrar Adelanto"/>
             <Btn onClick={()=>setAdelModal(null)} col="ghost" ch="Cancelar"/>
           </div>
