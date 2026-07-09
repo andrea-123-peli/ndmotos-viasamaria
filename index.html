@@ -23,9 +23,9 @@ const LOGO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0Z
 const fm  = v => '$' + Math.round(v||0).toLocaleString('es-CO');
 const hoy = () => new Date().toISOString().slice(0,10);
 const uid = () => 'x' + Date.now() + Math.floor(Math.random()*9999);
-const fDT = s => { try { const d=new Date(s); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes()); } catch(e){ return ''; } };
+const fDT = s => { try { const d=new Date(s); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes()); } catch(e){ return ''; } };
 const fD  = s => { try { const d=new Date(s+'T12:00:00'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); } catch(e){ return s||''; } };
-const fT  = s => { try { const d=new Date(s); return pad(d.getHours())+':'+pad(d.getMinutes()); } catch(e){ return ''; } };
+const fT  = s => { try { const d=new Date(s); const hoy2=new Date(); const esHoy=d.getDate()===hoy2.getDate()&&d.getMonth()===hoy2.getMonth(); return (esHoy?'':pad(d.getDate())+'/'+pad(d.getMonth()+1)+' ')+pad(d.getHours())+':'+pad(d.getMinutes()); } catch(e){ return ''; } };
 const pad = n => String(n).padStart(2,'0');
 const semana = () => {
   const d=new Date(), dy=d.getDay(), diff=d.getDate()-dy+(dy===0?-6:1);
@@ -1846,6 +1846,10 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                     <div><div style={{fontSize:10,fontWeight:700,color:C.mu,textTransform:'uppercase',marginBottom:5}}>Desde</div><Inp v={hDe} s={setHDe} type="date" style={{width:155}}/></div>
                     <div><div style={{fontSize:10,fontWeight:700,color:C.mu,textTransform:'uppercase',marginBottom:5}}>Hasta</div><Inp v={hHa} s={setHHa} type="date" style={{width:155}}/></div>
                     <Btn col="ghost" onClick={()=>{setHDe(hoy());setHHa(hoy());}} ch="Hoy"/>
+                    <Btn col="ghost" onClick={()=>{
+                      const d=new Date();d.setDate(d.getDate()-1);
+                      const a=d.toISOString().slice(0,10);setHDe(a);setHHa(a);
+                    }} ch="Ayer"/>
                     <Btn col="ghost" onClick={setMes} ch="Este mes"/>
                     <Btn col="ghost" onClick={()=>{setHDe('');setHHa('');}} ch="Todo"/>
                   </div>
@@ -1900,7 +1904,19 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                       {allItems.map((x,i)=>(
                         <tr key={i} style={{borderBottom:`1px solid ${C.bo}`}}>
                           <TD style={{color:C.mu,fontSize:12}} ch={fDT(x.r.fecha)}/>
-                          <TD ch={<Chip col={x.t==='ven'?(x.r.tipo==='lavado'?C.cy:x.r.tipo==='empleado'?C.gr:C.gr):C.re} ch={x.t==='ven'?(x.r.tipo==='lavado'?'LAVADO':x.r.tipo==='empleado'?'EMPLEADO':'VENTA'):'GASTO'}/>}/>
+                          {(()=>{
+                            let col=C.re,lbl='GASTO';
+                            if(x.t==='ven'){
+                              if(x.r.tipo==='lavado'){col=C.cy;lbl='🚿 LAVADO';}
+                              else if(x.r.tipo==='empleado'){col=C.gr;lbl='🔧 TALLER';}
+                              else if(x.r.items&&x.r.items.some(it=>it.directo)){col=C.pu;lbl='💰 DIRECTA';}
+                              else if(x.r.items&&x.r.items.some(it=>it.sv)){col=C.or;lbl='🔧 SERVICIO';}
+                              else{col=C.bl;lbl='🔩 REPUESTO';}
+                            } else {
+                              lbl='💸 '+((x.r.tipo||'GASTO').slice(0,10));
+                            }
+                            return <TD ch={<Chip col={col} ch={lbl}/>}/>;
+                          })()}
                           <TD style={{fontSize:12}} ch={x.r.cliente||x.r.tipo||'—'}/>
                           <TD style={{fontSize:12}} ch={(x.r.desc||'').slice(0,40)}/>
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
@@ -1998,7 +2014,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   const pe=empProd.filter(p=>p.empleado===e2.nom);
                   const tH=pe.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
                   const peSemTodo=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin);
-                  const peSem=peSemTodo.filter(p=>!p.pagado);
+                  const peSem=pe.filter(p=>!p.pagado); // TODO lo pendiente sin filtro de fecha
                   const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
@@ -2025,7 +2041,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,marginBottom:10}}>
                         {[
                           {lbl:'Hoy',val:tH,col:C.bl},
-                          {lbl:'Esta semana',val:tS,col:C.cy},
+                          {lbl:'Esta semana (inf.)',val:tS,col:C.cy},
                           {lbl:'Este mes',val:tM,col:C.or},
                           {lbl:'Total',val:tT,col:C.pu}
                         ].map((it,i)=>(
@@ -2280,7 +2296,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   const pe=lavProd.filter(p=>p.empleado===e2.nom);
                   const tH=pe.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
                   const peSemTodo=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin);
-                  const peSem=peSemTodo.filter(p=>!p.pagado);
+                  const peSem=pe.filter(p=>!p.pagado); // TODO lo pendiente sin filtro de fecha
                   const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
