@@ -311,7 +311,11 @@ function App() {
     })();
     return ()=>clearTimeout(to);
   },[]);
-const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,adelantos:rAdelantos.current,cajaInicial:rCajaInicial.current,cajaCierres:rCajaCierres.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} };
+let _guardarTimer=null;
+  const guardar = async patch => {
+    clearTimeout(_guardarTimer);
+    _guardarTimer=setTimeout(async()=>{
+    const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,adelantos:rAdelantos.current,cajaInicial:rCajaInicial.current,cajaCierres:rCajaCierres.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} },300); };
   
   const sInv    = d => { rInv.current=d;    setInv(d);    guardar({inv:d});    };
   const sVen    = d => { rVen.current=d;    setVen(d);    guardar({ven:d});    };
@@ -561,6 +565,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const [crFecha,setCrFecha]=useState('');
   const [crPagoId,setCrPagoId]=useState(''); const [crPagoMonto,setCrPagoMonto]=useState('');
   const [editCredId,setEditCredId]=useState(null);
+  const [addingProd,setAddingProd]=useState(false);
   const [crAddNom,setCrAddNom]=useState('');
   const [crAddVal,setCrAddVal]=useState('');
 
@@ -617,11 +622,14 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
   const [hwFecha,setHwFecha]=useState(''); const [hwBus,setHwBus]=useState('');
 
   const addProd = () => {
+    if(addingProd) return;
     if(!iRef) return toast2('Escribe la referencia','err');
     if(!iNom) return toast2('Escribe el nombre','err');
     // Referencias duplicadas permitidas
-    sInv([...inv,{id:iRef.toUpperCase(),cat:iCat,nom:iNom,pc:parseFloat(iPc)||0,pv:parseFloat(iPv)||0,stock:parseInt(iStk)||0}]);
+    sInv([...rInv.current,{id:iRef.toUpperCase(),_uid:uid(),cat:iCat,nom:iNom,pc:parseFloat(iPc)||0,pv:parseFloat(iPv)||0,stock:parseInt(iStk)||0}]);
     setIR('');setIN('');setIP('');setIPv('');setIS('');toast2('Producto agregado','ok');
+    setAddingProd(true);
+    setTimeout(()=>setAddingProd(false),1000);
   };
 
   // ── FORMULARIO CLIENTES ──
@@ -974,7 +982,12 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD style={{fontSize:12}} ch={(x.r.desc||'').slice(0,35)}/>
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
                           <TD style={{color:C.gr,fontWeight:700}} ch={x.r.ganancia>0?fm(x.r.ganancia):'-'}/>
-                          <TD ch={x.t==='ven'&&<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;borrarVenta(x.r.id);}} ch="🗑"/>}/>
+                          <TD ch={x.t==='ven'
+                          ?<div style={{display:'flex',gap:4}}>
+                            <Btn sm col={C.pu} onClick={()=>setTk(x.r)} ch="📄"/>
+                            <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;borrarVenta(x.r.id);}} ch="🗑"/>
+                          </div>
+                          :<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sGas(gas.filter(g=>g.id!==x.r.id));}} ch="🗑"/>}/>
                         </tr>
                       ))}
                       {!ven.length&&!gas.length&&<tr><td colSpan={6} style={{textAlign:'center',padding:28,color:C.mu}}>Sin transacciones aun</td></tr>}
@@ -1327,14 +1340,21 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                                   <span style={{color:C.re}}>Falta: {fm(falta)}</span>
                                 </div>
                                 {cr.items&&cr.items.length>0&&(
-                                  <div style={{marginBottom:8,background:C.su,borderRadius:8,padding:'6px 10px'}}>
-                                    <div style={{fontSize:10,color:C.mu,textTransform:'uppercase',marginBottom:4}}>Productos en esta factura:</div>
-                                    {cr.items.map((it,i)=>(
-                                      <div key={i} style={{fontSize:11,color:C.tx,padding:'2px 0',display:'flex',justifyContent:'space-between'}}>
-                                        <span>• {it.nom}</span>
-                                        <span style={{color:C.mu}}>{fm(it.total||it.pc*it.cant)}</span>
+                                  <div>
+                                    <div onClick={()=>setEditCredId(editCredId===cr.id+'d'?null:cr.id+'d')}
+                                      style={{fontSize:11,color:C.bl,cursor:'pointer',marginBottom:4}}>
+                                      {editCredId===cr.id+'d'?'▲ Ocultar detalle':'▼ Ver '+cr.items.length+' producto(s)'}
+                                    </div>
+                                    {editCredId===cr.id+'d'&&(
+                                      <div style={{background:C.su,borderRadius:8,padding:'6px 10px',marginBottom:8}}>
+                                        {cr.items.map((it,i)=>(
+                                          <div key={i} style={{fontSize:11,color:C.tx,padding:'2px 0',display:'flex',justifyContent:'space-between'}}>
+                                            <span>• {it.nom}</span>
+                                            <span style={{color:C.mu}}>{fm(it.total||it.pc*(it.cant||1))}</span>
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
+                                    )}
                                   </div>
                                 )}
                                 <div style={{display:'flex',gap:8,alignItems:'center'}}>
@@ -1526,7 +1546,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                         </div>
                       ))}
                       <div style={{flex:1,minWidth:100}}><FG lbl="Categoria" ch={<CatSel v={iCat} s={setIC}/>}/></div>
-                      <Btn onClick={addProd} col={C.or} ch="+ Agregar"/>
+                      <Btn onClick={addProd} col={addingProd?"ghost":C.or} ch="+ Agregar"/>
                     </div>
                   </div>
                 }/>
@@ -1548,7 +1568,14 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                   <table style={{width:'100%',borderCollapse:'collapse'}}>
                     <thead><tr><TH ch="Ref."/><TH ch="Cat."/><TH ch="Producto"/><TH ch="P.Compra"/><TH ch="P.Venta"/>{ivaOn&&<TH ch="+ IVA"/>}<TH ch="Ganancia"/><TH ch="Stock"/><TH ch="Estado"/><TH ch=""/><TH ch=""/></tr></thead>
                     <tbody>
-                      {inv.filter(p=>!iBus||p.nom.toLowerCase().includes(iBus.toLowerCase())||p.id.toLowerCase().includes(iBus.toLowerCase())||p.cat.toLowerCase().includes(iBus.toLowerCase())).map((p,i)=>{
+                      {inv.filter(p=>{
+                      if(!iBus) return true;
+                      const q=iBus.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+                      const nom=(p.nom||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+                      const ref=(p.id||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+                      const cat=(p.cat||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+                      return nom.includes(q)||ref.includes(q)||cat.includes(q);
+                    }).map((p,i)=>{
                         const ag=p.stock<=0, bj=p.stock>0&&p.stock<=MIN;
                         const gan=p.pv-p.pc, mar2=p.pv>0?Math.round((gan/p.pv)*100):0;
                         return (
@@ -1563,7 +1590,7 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                             <TD style={{fontSize:20,fontWeight:800,color:ag?C.re:bj?C.ye:C.gr}} ch={p.stock}/>
                             <TD ch={<Chip col={ag?C.re:bj?C.ye:C.gr} ch={ag?'AGOTADO':bj?'BAJO':'OK'}/>}/>
                             <TD ch={<Btn sm col={C.bl} onClick={()=>setEP({...p,orig:p.id})} ch="✏️"/>}/>
-                            <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sInv(inv.filter(x=>x.id!==p.id));toast2('Producto eliminado','info');}} ch="🗑"/>}/>
+                            <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sInv(rInv.current.filter(x=>(p._uid?x._uid!==p._uid:x.id!==p.id)||(!p._uid&&x._uid)));toast2('Producto eliminado','info');}} ch="🗑"/>}/>
                           </tr>
                         );
                       })}
@@ -1922,7 +1949,10 @@ const guardar = async patch => { const data = {inv:rInv.current,ven:rVen.current
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
                           <TD style={{color:C.gr,fontWeight:700}} ch={x.r.ganancia>0?fm(x.r.ganancia):'-'}/>
                           <TD ch={x.t==='ven'
-                            ? <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;borrarVenta(x.r.id);}} ch="🗑"/>
+                            ? <div style={{display:'flex',gap:4}}>
+                                <Btn sm col={C.pu} onClick={()=>setTk(x.r)} ch="📄"/>
+                                <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;borrarVenta(x.r.id);}} ch="🗑"/>
+                              </div>
                             : <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sGas(gas.filter(g=>g.id!==x.r.id));}} ch="🗑"/>}/>
                         </tr>
                       ))}
