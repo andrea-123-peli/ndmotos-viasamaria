@@ -2128,8 +2128,7 @@ let _guardarTimer=null;
                                 sEmpProd(rEmpProd.current.map(p=>p.empleado===e2.nom&&!p.pagado?{...p,pagado:true}:p));
                                 sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
                                 toast2('Pago de '+fm(pagoReal)+' a '+e2.nom+' (Taller) registrado','ok');
-                                setPayingEmp(true);setTimeout(()=>setPayingEmp(false),1500);
-                              }} col={payingEmp?'ghost':C.gr} ch={payingEmp?'⏳ Procesando...':'✅ Registrar pago'} disabled={payingEmp}/>
+                              }} col={C.gr} ch="✅ Registrar pago"/>
                             </div>
                           </div>
                         );
