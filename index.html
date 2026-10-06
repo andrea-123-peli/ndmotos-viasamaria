@@ -467,22 +467,30 @@ let _guardarTimer=null;
     const pv=parseFloat(vSP);
     if(!pv) return toast2('Ingresa el precio','err');
     const pcBase=parseFloat(vSC)||0;
-    // Ganancia = precio total cobrado (el pago al empleado se descuenta cuando se paga)
-    const item={id:'SVC'+uid(),nom:vSD||vST,pv,pc:pcBase,cant:1,sv:true,tecnico:vTecnico};
+    const nomTec=vTecnico.startsWith('t:')||vTecnico.startsWith('l:')?vTecnico.slice(2):vTecnico;
+    const empObjPre=emps.find(e=>e.nom===nomTec);
+    const lavObjPre=lavEmps.find(e=>e.nom===nomTec);
+    const pctPre=empObjPre?empObjPre.pct:lavObjPre?lavObjPre.pct:0;
+    // Si tiene tecnico, el costo real = porcentaje del tecnico (para que ganancia = porcentaje del negocio)
+    const pcReal=vTecnico&&pctPre>0?Math.round(pv*(pctPre/100)):pcBase;
+    const nomReal2=vTecnico.startsWith('t:')||vTecnico.startsWith('l:')?vTecnico.slice(2):vTecnico;
+    const item={id:'SVC'+uid(),nom:vSD||vST,pv,pc:pcReal,cant:1,sv:true,tecnico:nomReal2};
     setVI([...vItems,item]);
     // Si hay tecnico asignado, registrar en produccion del taller
     if(vTecnico){
-      const empObj=emps.find(e=>e.nom===vTecnico);
-      const lavObj=lavEmps.find(e=>e.nom===vTecnico);
-      if(empObj){
-        const pct=empObj.pct;
-        const prod={id:item.id+'t',fecha:hoy(),empleado:vTecnico,
+      const esTaller=vTecnico.startsWith('t:');
+      const nomReal=vTecnico.slice(2);
+      if(esTaller){
+        const empObj=emps.find(e=>e.nom===nomReal);
+        const pct=empObj?empObj.pct:60;
+        const prod={id:item.id+'t',fecha:hoy(),empleado:nomReal,
           servicio:vSD||vST,desc:(vSD||vST),pct,valor:pv,
           emp60:Math.round(pv*(pct/100)),neg40:Math.round(pv*((100-pct)/100))};
         sEmpProd([...rEmpProd.current,prod]);
-      } else if(lavObj){
-        const pct=lavObj.pct;
-        const prod={id:item.id+'l',fecha:hoy(),empleado:vTecnico,servicio:(vSD||vST),
+      } else {
+        const lavObj=lavEmps.find(e=>e.nom===nomReal);
+        const pct=lavObj?lavObj.pct:60;
+        const prod={id:item.id+'l',fecha:hoy(),empleado:nomReal,servicio:(vSD||vST),
           valor:pv,empParte:Math.round(pv*(pct/100)),negParte:Math.round(pv*((100-pct)/100)),pct};
         sLavProd([...rLavProd.current,prod]);
       }
@@ -859,7 +867,7 @@ let _guardarTimer=null;
                   {/* Por pagar empleados dentro de caja */}
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.08)',borderRadius:8,padding:'8px 12px',marginBottom:12}}>
                     <span style={{fontSize:11,color:C.mu}}>👷 Por pagar a empleados</span>
-                    <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(Math.max(0,empProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.emp60,0)+lavProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.empParte,0)-adelantos.filter(a=>!a.pagado).reduce((a,b)=>a+b.monto,0)))}</span>
+                    <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(Math.max(0,empProd.filter(p=>p.pagado!==true).reduce((a,b)=>a+(b.emp60||0),0)+lavProd.filter(p=>p.pagado!==true).reduce((a,b)=>a+(b.empParte||0),0)))}</span>
                   </div>
 
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.15)',borderRadius:10,padding:'12px 16px',border:`2px solid ${C.ye}`,marginBottom:10}}>
@@ -1066,8 +1074,8 @@ let _guardarTimer=null;
                         <select value={vTecnico} onChange={e=>setVTecnico(e.target.value)}
                           style={{width:'100%',background:C.su,border:`1px solid ${C.bo}`,borderRadius:8,color:C.tx,fontSize:14,padding:'10px 12px',outline:'none'}}>
                           <option value="">-- Sin asignar --</option>
-                          {emps.map(e2=><option key={'t'+e2.nom} value={e2.nom}>🔧 {e2.nom} ({e2.pct}%)</option>)}
-                          {lavEmps.map(e2=><option key={'l'+e2.nom} value={e2.nom}>🚿 {e2.nom} ({e2.pct}%)</option>)}
+                          {emps.map(e2=><option key={'t'+e2.nom} value={'t:'+e2.nom}>🔧 {e2.nom} ({e2.pct}%)</option>)}
+                          {lavEmps.map(e2=><option key={'l'+e2.nom} value={'l:'+e2.nom}>🚿 {e2.nom} ({e2.pct}%)</option>)}
                         </select>
                       }/>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
@@ -1999,7 +2007,7 @@ let _guardarTimer=null;
                       servicio:epDesc.trim(),desc:epDesc.trim(),pct,valor:val2,
                       emp60:Math.round(val2*(pct/100)),neg40:Math.round(val2*((100-pct)/100))};
                     sEmpProd([...rEmpProd.current,prod]);
-                    sVen([...rVen.current,{id:prod.id+'e',fecha:new Date(prod.fecha+'T12:00:00').toISOString(),
+                    sVen([...rVen.current,{id:prod.id+'e',fecha:new Date().toISOString(),
                       tipo:'empleado',cliente:'Taller',desc:'🔧 '+epDesc+' - '+epEmp,
                       total:val2,ganancia:val2,pago:'Efectivo',items:[]}]);
                     setEpVal('');setEpDesc('');
@@ -2052,7 +2060,7 @@ let _guardarTimer=null;
                         <div style={{fontWeight:800,fontSize:15}}>{e2.nom}</div>
                         <div style={{display:'flex',gap:6}}>
                           <Btn sm col={C.ye} onClick={()=>{setAdelModal({nom:e2.nom,tipo:'taller'});setAdelMonto('');setAdelDesc('');setAdelFecha(hoy());}} ch="💰 Adelanto Taller"/>
-                          <Btn sm col={C.re} onClick={()=>{sEmps(emps.filter(x=>x.nom!==e2.nom));sEmpProd(empProd.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
+                          <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro que deseas eliminar a '+e2.nom+'?'))return;sEmps(emps.filter(x=>x.nom!==e2.nom));sEmpProd(rEmpProd.current.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
                         </div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,background:C.su,borderRadius:8,padding:'8px 12px'}}>
@@ -2121,7 +2129,6 @@ let _guardarTimer=null;
                               <Btn sm col={C.gr} onClick={()=>{
                                 // Produccion lavadero de esta semana
                                 sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Taller',periodo:sem.ini+' al '+sem.fin,monto:pagoReal,pago:'Efectivo'}]);
-                                sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Nomina',desc:'Pago '+e2.nom+' - Taller',monto:pagoReal,pago:'Efectivo'}]);
                                 sEmpProd(rEmpProd.current.map(p=>p.empleado===e2.nom&&!p.pagado?{...p,pagado:true}:p));
                                 sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
                                 toast2('Pago de '+fm(pagoReal)+' a '+e2.nom+' (Taller) registrado','ok');
@@ -2304,7 +2311,7 @@ let _guardarTimer=null;
                     const prod={id:uid(),fecha:lvFecha||hoy(),empleado:lvEmp,servicio:lvServ.trim(),
                       valor:val2,empParte:Math.round(val2*(pctI/100)),negParte:Math.round(val2*((100-pctI)/100)),pct:pctI};
                     sLavProd([...rLavProd.current,prod]);
-                    sVen([...rVen.current,{id:prod.id+'v',fecha:new Date(prod.fecha+'T12:00:00').toISOString(),
+                    sVen([...rVen.current,{id:prod.id+'v',fecha:new Date().toISOString(),
                       tipo:'lavado',cliente:'Lavadero',desc:'🚿 '+lvServ+' - '+lvEmp,
                       total:val2,ganancia:val2,pago:'Efectivo',items:[]}]);
                     setLvVal('');setLvServ('Lavado');
@@ -2334,7 +2341,7 @@ let _guardarTimer=null;
                         <div style={{fontWeight:800,fontSize:14}}>🚿 {e2.nom}</div>
                         <div style={{display:'flex',gap:6}}>
                           <Btn sm col={C.ye} onClick={()=>{setAdelModal({nom:e2.nom,tipo:'lavadero'});setAdelMonto('');setAdelDesc('');setAdelFecha(hoy());}} ch="💰 Adelanto Lavadero"/>
-                          <Btn sm col={C.re} onClick={()=>{sLavEmps(lavEmps.filter(x=>x.nom!==e2.nom));sLavProd(lavProd.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
+                          <Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro que deseas eliminar a '+e2.nom+'?'))return;sLavEmps(lavEmps.filter(x=>x.nom!==e2.nom));sLavProd(rLavProd.current.filter(p=>p.empleado!==e2.nom));toast2(e2.nom+' eliminado','info');}} ch="Eliminar"/>
                         </div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,background:C.su,borderRadius:8,padding:'8px 12px'}}>
@@ -2386,7 +2393,6 @@ let _guardarTimer=null;
                               </div>
                               <Btn sm col={C.gr} onClick={()=>{
                                 sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Lavadero',periodo:sem.ini+' al '+sem.fin,monto:pagoRealL,pago:'Efectivo'}]);
-                                sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Nomina',desc:'Pago '+e2.nom+' - Lavadero',monto:pagoRealL,pago:'Efectivo'}]);
                                 sLavProd(rLavProd.current.map(p=>p.empleado===e2.nom&&!p.pagado?{...p,pagado:true}:p));
                                 sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
                                 toast2('Pago de '+fm(pagoRealL)+' a '+e2.nom+' registrado','ok');
@@ -2542,9 +2548,9 @@ let _guardarTimer=null;
               const nuevoAdel={id:uid(),nom:adelModal.nom,tipo:adelModal.tipo,
                 fecha:adelFecha||hoy(),desc:adelDesc||'Adelanto',monto,pagado:false};
               sAdelantos([...rAdelantos.current,nuevoAdel]);
-              sGas([...rGas.current,{id:nuevoAdel.id+'g',fecha:new Date().toISOString(),
-                tipo:'Adelanto Empleado',desc:'Adelanto a '+adelModal.nom+': '+(adelDesc||'sin descripcion'),
-                monto,pago:'Efectivo'}]);
+              // Registrar adelanto en nomina para historial
+              sEmp([...rEmp.current,{id:nuevoAdel.id+'e',fecha:nuevoAdel.fecha,nombre:nuevoAdel.nom,
+                cargo:'Adelanto',periodo:nuevoAdel.fecha,monto,pago:'Efectivo'}]);
               setAdelModal(null);
               toast2('Adelanto de '+fm(monto)+' registrado y descontado de caja','ok');
             }} col={C.ye} style={{flex:1,justifyContent:'center'}} ch="💰 Registrar Adelanto"/>
