@@ -24,7 +24,7 @@ const fm  = v => '$' + Math.round(v||0).toLocaleString('es-CO');
 const hoy = () => new Date().toISOString().slice(0,10);
 const uid = () => 'x' + Date.now() + Math.floor(Math.random()*9999);
 const fDT = s => { try { const d=new Date(s); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes()); } catch(e){ return ''; } };
-const fD  = s => { try { const d=new Date(s+'T12:00:00'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); } catch(e){ return s||''; } };
+const fD  = s => { try { const d=s&&s.includes('T')?new Date(s):new Date(s+'T12:00:00'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes()); } catch(e){ return s||''; } };
 const fT  = s => { try { const d=new Date(s); const hoy2=new Date(); const esHoy=d.getDate()===hoy2.getDate()&&d.getMonth()===hoy2.getMonth(); return (esHoy?'':pad(d.getDate())+'/'+pad(d.getMonth()+1)+' ')+pad(d.getHours())+':'+pad(d.getMinutes()); } catch(e){ return ''; } };
 const pad = n => String(n).padStart(2,'0');
 const semana = () => {
@@ -159,11 +159,11 @@ const SubNav = ({opts,val,set}) => (
 
 const BuscarProd = ({val,setVal,onSel,inv}) => {
   const [open,setOpen] = useState(false);
-  const res = open&&val ? inv.filter(p=>
-    p.nom.toLowerCase().includes(val.toLowerCase()) ||
-    p.id.toLowerCase().includes(val.toLowerCase()) ||
-    p.cat.toLowerCase().includes(val.toLowerCase())
-  ).slice(0,7) : [];
+  const res = open&&val ? inv.filter(p=>{
+    const nrm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+    const q=nrm(val);
+    return nrm(p.nom).includes(q)||nrm(p.id).includes(q)||nrm(p.cat).includes(q);
+  }).slice(0,12) : [];
   return (
     <div style={{position:'relative'}}>
       <Inp v={val} s={v=>{setVal(v);setOpen(true);if(!v){onSel(null);setOpen(false);}}} ph="Nombre o referencia..."/>
@@ -542,6 +542,12 @@ let _guardarTimer=null;
       venta.fiaId=fiaId;
     }
     setTk(venta);
+    // Si hay cliente seleccionado, agregar venta a su historial
+    if(vClObj){
+      const tecnicos=[...new Set(vItems.filter(it=>it.tecnico).map(it=>it.tecnico))].join(', ');
+    const serv={id:venta.id,fecha:venta.fecha,desc,total,cobrado:total,rep:desc,tecnico:tecnicos||'',items:[...vItems],tipo:'venta'};
+      sCli(cli.map(c=>c.id===vClObj.id?{...c,servicios:[...( c.servicios||[]),serv]}:c));
+    }
     setVI([]);setVB('');setVS(null);setVC('1');setVPr('');setVCl('');setVClObj(null);setVTecnico('');setEditVenta(null);setVDNom('');setVDPc('');setVDPv('');
     toast2('Venta de '+fm(total)+' registrada','ok');
   };
@@ -550,6 +556,15 @@ let _guardarTimer=null;
     const v=ven.find(x=>x.id===id);
     const newInv=v&&v.items?inv.map(p=>{const it=v.items.find(x=>x.id===p.id);return it&&!it.sv?{...p,stock:p.stock+it.cant}:p;}):inv;
     sInv(newInv); sVen(ven.filter(x=>x.id!==id));
+    // Borrar produccion del empleado asociada a esta venta
+    if(v&&v.items){
+      v.items.forEach(it=>{
+        if(it.sv&&it.tecnico){
+          sEmpProd(rEmpProd.current.filter(x=>x.id!==it.id+'t'));
+          sLavProd(rLavProd.current.filter(x=>x.id!==it.id+'l'));
+        }
+      });
+    }
     toast2('Venta eliminada','info');
   };
 
@@ -640,7 +655,7 @@ let _guardarTimer=null;
   const [clNom,setClN]=useState(''); const [clTel,setClT]=useState('');
   const [clEmpresa,setClEmpresa]=useState(false); const [clNit,setClNit]=useState(''); const [clEmail,setClEmail]=useState('');
   const [clMoto,setClM]=useState(''); const [clPlaca,setClPl]=useState('');
-  const [clNotas,setClNo]=useState(''); const [clBus,setClB]=useState('');
+  const [clNotas,setClNo]=useState(''); const [clKm,setClKm]=useState(''); const [clBus,setClB]=useState('');
   const [clSel,setClS]=useState(null); const [clFe,setClFe]=useState(hoy());
   const [clST,setClST]=useState('Cambio de aceite'); const [clSD,setClSD]=useState('');
   const [clSCo,setClSCo]=useState('0'); const [clSCb,setClSCb]=useState('');
@@ -650,8 +665,8 @@ let _guardarTimer=null;
 
   const addCl = () => {
     if(!clNom) return toast2('Escribe el nombre','err');
-    sCli([...cli,{id:uid(),nom:clNom,tel:clTel,email:clEmail,moto:clMoto,placa:clPlaca,notas:clNotas,empresa:clEmpresa,nit:clNit,servicios:[]}]);
-    setClN('');setClT('');setClM('');setClPl('');setClNo('');setClEmail('');setClNit('');setClEmpresa(false);toast2('Cliente registrado','ok');
+    sCli([...cli,{id:uid(),nom:clNom,tel:clTel,email:clEmail,moto:clMoto,placa:clPlaca,notas:clNotas,km:clKm,empresa:clEmpresa,nit:clNit,servicios:[]}]);
+    setClN('');setClT('');setClM('');setClPl('');setClNo('');setClKm('');setClEmail('');setClNit('');setClEmpresa(false);toast2('Cliente registrado','ok');
   };
 
   const addServCl = () => {
@@ -1574,8 +1589,8 @@ let _guardarTimer=null;
                     <tbody>
                       {inv.filter(p=>{
                       if(!iBus) return true;
-                      const q=iBus.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-                      const nom=(p.nom||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+                      const q=iBus.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+                      const nom=(p.nom||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
                       const ref=(p.id||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
                       const cat=(p.cat||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
                       return nom.includes(q)||ref.includes(q)||cat.includes(q);
@@ -1690,6 +1705,7 @@ let _guardarTimer=null;
                         {[['Nombre',clNom,setClN,'Nombre completo...'],['Telefono',clTel,setClT,'Numero...'],
                           ['Email',clEmail,setClEmail,'correo@ejemplo.com'],
                           ['Moto',clMoto,setClM,'Ej: Honda CB 150...'],['Placa',clPlaca,setClPl,'Ej: ABC-123'],
+                          ['Kilometraje',clKm,setClKm,'Ej: 12500 km'],
                           ['Notas',clNotas,setClNo,'Observaciones...']].map(([lbl,val,fn,ph])=>(
                           <FG key={lbl} lbl={lbl} ch={<Inp v={val} s={fn} ph={ph}/>}/>
                         ))}
@@ -2456,8 +2472,8 @@ let _guardarTimer=null;
                                 <TD style={{fontWeight:700}} ch={fm(p.valor)}/>
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.empParte)+' ('+p.pct+'%)'}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(p.negParte)+' ('+(100-p.pct)+'%)'}/>
-                                <TD ch={<Btn sm col={C.re} onClick={()=>{
-                                  sLavProd(lavProd.filter(x=>x.id!==p.id));
+                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro que deseas eliminar este registro?'))return;
+                                  sLavProd(rLavProd.current.filter(x=>x.id!==p.id));
                                   sVen(ven.filter(v=>v.id!==p.id+'v'));
                                   toast2('Eliminado','info');
                                 }} ch="🗑"/>}/>
@@ -2633,7 +2649,7 @@ let _guardarTimer=null;
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}}>
               <div>
                 <div style={{fontSize:18,fontWeight:800,color:C.or}}>{c.nom}</div>
-                <div style={{fontSize:12,color:C.mu}}>{[c.tel?'📞 '+c.tel:'',c.moto?'🏍 '+c.moto:'',c.placa?'🔖 '+c.placa:''].filter(Boolean).join(' · ')}</div>
+                <div style={{fontSize:12,color:C.mu}}>{[c.tel?'📞 '+c.tel:'',c.moto?'🏍 '+c.moto:'',c.placa?'🔖 '+c.placa:'',c.km?'📍 '+c.km+' km':''].filter(Boolean).join(' · ')}</div>
               </div>
               <div style={{display:'flex',gap:8}}>
                 <Btn sm col={C.bl} onClick={()=>{setVerCl(null);setECl({...c});}} ch="✏️ Editar"/>
@@ -2650,20 +2666,32 @@ let _guardarTimer=null;
             </div>
             <div style={{overflowX:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead><tr><TH ch="Fecha"/><TH ch="Servicio"/><TH ch="Descripcion"/><TH ch="Repuestos"/><TH ch="Cobrado"/><TH ch=""/></tr></thead>
+                <thead><tr></tr></thead>
                 <tbody>
                   {[...c.servicios].reverse().map((sv,i)=>(
-                    <tr key={i} style={{borderBottom:`1px solid ${C.bo}`}}>
-                      <TD style={{fontSize:12,color:C.mu}} ch={fD(sv.fecha)}/>
-                      <TD ch={<Chip col={C.or} ch={sv.tipo}/>}/>
-                      <TD style={{fontSize:12}} ch={sv.desc}/>
-                      <TD style={{fontSize:11,color:C.mu}} ch={sv.rep||'—'}/>
-                      <TD style={{color:C.gr,fontWeight:700}} ch={fm(sv.cobrado)}/>
-                      <TD ch={<Btn sm col={C.re} onClick={()=>{
+                    <tr key={i}>
+                      <td colSpan={2} style={{paddingBottom:10}}>
+                        <div style={{background:C.su,borderRadius:10,padding:'10px 14px',border:`1px solid ${C.bo}`}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                            <div style={{fontSize:13,fontWeight:700,color:C.tx}}>{sv.desc}</div>
+                            <div style={{fontSize:14,fontWeight:800,color:C.gr}}>{fm(sv.cobrado)}</div>
+                          </div>
+                          <div style={{display:'flex',flexWrap:'wrap',gap:8,fontSize:11,color:C.mu}}>
+                            <span>📅 {fD(sv.fecha)}</span>
+                            {sv.tecnico&&<span>👤 {sv.tecnico}</span>}
+                            <Chip col={C.or} ch={sv.tipo||'venta'}/>
+                          </div>
+                          {sv.items&&sv.items.length>0&&<div style={{marginTop:6,fontSize:11,color:C.mu}}>{sv.items.map(it=>it.cant+'x '+it.nom).join(' · ')}</div>}
+                        </div>
+                      </td>
+                      <td style={{verticalAlign:'top',paddingBottom:10}}>
+                        <Btn sm col={C.re} onClick={()=>{
+                        if(!confirm('¿Seguro que deseas eliminar este servicio del historial?'))return;
                         const newCli=cli.map(x=>x.id===c.id?{...x,servicios:x.servicios.filter(s=>s.id!==sv.id)}:x);
                         sCli(newCli); setVerCl(newCli.find(x=>x.id===c.id));
                         toast2('Servicio eliminado','info');
-                      }} ch="🗑"/>}/>
+                        }} ch="🗑"/>
+                      </td>
                     </tr>
                   ))}
                   {!c.servicios.length&&<tr><td colSpan={6} style={{textAlign:'center',padding:20,color:C.mu}}>Sin servicios</td></tr>}
