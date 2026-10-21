@@ -795,11 +795,10 @@ let _guardarTimer=null;
           <div>
             <div style={{fontSize:15,fontWeight:800,letterSpacing:2,textTransform:'uppercase',marginBottom:14}}>📊 Resumen General</div>
 
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-              <KPI lbl="💰 Ventas Totales"  val={fm(tvT)} col={C.gr} sub={ven.length+' transacciones'} onClick={()=>setTab('venta')}/>
-              <KPI lbl="📈 Ganancia Bruta"  val={fm(tvG)} col={C.or} sub={'Margen: '+mar+'%'} onClick={()=>setTab('historial')}/>
-              <KPI lbl="💸 Gastos"          val={fm(tGa)} col={C.re} sub="Incluye nomina" onClick={()=>setTab('gastos')}/>
-              <KPI lbl="🏆 Utilidad Neta"   val={fm(util)} col={util>=0?C.ye:C.re} sub="Ganancia - Gastos"/>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}}>
+              <KPI lbl="💰 Ventas"       val={fm(tvT)} col={C.gr} sub={ven.length+' transacciones'} onClick={()=>setTab('venta')}/>
+              <KPI lbl="📈 Ganancia"     val={fm(tvG)} col={C.or} sub={'Margen: '+mar+'%'} onClick={()=>setTab('historial')}/>
+              <KPI lbl="💸 Gastos"       val={fm(tGa)} col={C.re} sub="Incluye nomina" onClick={()=>setTab('gastos')}/>
             </div>
             {/* Caja estimada */}
             {(()=>{
@@ -875,10 +874,25 @@ let _guardarTimer=null;
                     })()}
                   
 
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(239,68,68,.08)',borderRadius:8,padding:'10px 14px',marginBottom:8}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(239,68,68,.08)',borderRadius:8,padding:'10px 14px',marginBottom:6}}>
                     <span style={{fontSize:11,color:C.mu,textTransform:'uppercase',fontWeight:700}}>📤 Gastos del período</span>
                     <span style={{fontSize:16,fontWeight:800,color:C.re}}>{fm(totalSalidas)}</span>
                   </div>
+                  {totalSalidas>0&&(
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:5,marginBottom:8}}>
+                      {[
+                        {lbl:'🛒 Compras',val:sCompras},
+                        {lbl:'💳 Abonos Proveedor',val:sAbonos},
+                        {lbl:'👷 Nómina pagada',val:sNomina},
+                        {lbl:'📦 Otros gastos',val:sOtros},
+                      ].filter(it=>it.val>0).map((it,i)=>(
+                        <div key={i} style={{background:'rgba(239,68,68,.06)',borderRadius:7,padding:'6px 10px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:10,color:C.mu}}>{it.lbl}</span>
+                          <span style={{fontSize:12,fontWeight:700,color:C.re}}>{fm(it.val)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {/* Por pagar empleados dentro de caja */}
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.08)',borderRadius:8,padding:'8px 12px',marginBottom:12}}>
                     <span style={{fontSize:11,color:C.mu}}>👷 Por pagar a empleados</span>
@@ -994,10 +1008,10 @@ let _guardarTimer=null;
                     <thead><tr><TH ch="Hora"/><TH ch="Tipo"/><TH ch="Descripcion"/><TH ch="Total"/><TH ch="Ganancia"/><TH ch=""/></tr></thead>
                     <tbody>
                       {[...ven.map(v=>({r:v,t:'ven'})),...gas.map(g=>({r:g,t:'gas'}))]
-                        .sort((a,b)=>new Date(b.r.fecha)-new Date(a.r.fecha)).slice(0,10).map((x,i)=>(
+                        .sort((a,b)=>new Date(b.r.fecha)-new Date(a.r.fecha)).slice(0,20).map((x,i)=>(
                         <tr key={i} style={{borderBottom:`1px solid ${C.bo}`}}>
                           <TD style={{color:C.mu,fontSize:12}} ch={fT(x.r.fecha)}/>
-                          <TD ch={<Chip col={x.t==='ven'?C.gr:C.re} ch={x.t==='ven'?'VENTA':'GASTO'}/>}/>
+                          <TD ch={<Chip col={x.t==='ven'?C.gr:C.re} ch={x.t==='ven'?'VENTA':(x.r.tipo||'GASTO')}/>}/>
                           <TD style={{fontSize:12}} ch={(x.r.desc||'').slice(0,35)}/>
                           <TD style={{color:x.t==='ven'?C.gr:C.re,fontWeight:700}} ch={fm(x.t==='ven'?x.r.total:x.r.monto)}/>
                           <TD style={{color:C.gr,fontWeight:700}} ch={x.r.ganancia>0?fm(x.r.ganancia):'-'}/>
@@ -1261,7 +1275,6 @@ let _guardarTimer=null;
                       <FG lbl="Categoria"           ch={<CatSel v={crCat} s={setCrCat}/>}/>
                       <FG lbl="Cantidad"            ch={<Inp v={crCant} s={setCrCant} type="number" ph="1"/>}/>
                       <FG lbl="Precio de Compra ($)" ch={<Inp v={crPc} s={setCrPc} type="number" ph="0"/>}/>
-                      }/>
                       <Btn onClick={()=>{
                         if(!crRef.trim()||!crNom.trim()) return toast2('Completa referencia y nombre','err');
                         const refU=crRef.toUpperCase().trim();
@@ -1719,38 +1732,6 @@ let _guardarTimer=null;
                         <Btn onClick={addCl} col={C.or} full ch="👤 Registrar Cliente"/>
                       </div>
                     }/>
-                    <Card ch={
-                      <div>
-                        <div style={{fontSize:10,fontWeight:700,letterSpacing:1.5,textTransform:'uppercase',color:C.mu,marginBottom:12}}>🔧 Registrar Servicio</div>
-                        <FG lbl="Buscar cliente" ch={
-                          <div style={{position:'relative'}}>
-                            <Inp v={clBus} s={v=>{setClB(v);if(!v)setClS(null);}} ph="Nombre o telefono..."/>
-                            {clBus&&cli.filter(c=>c.nom.toLowerCase().includes(clBus.toLowerCase())||(c.tel&&c.tel.includes(clBus))).slice(0,5).length>0&&(
-                              <div style={{position:'absolute',top:'100%',left:0,right:0,background:C.ca,border:`1px solid ${C.or}`,borderRadius:'0 0 8px 8px',zIndex:50}}>
-                                {cli.filter(c=>c.nom.toLowerCase().includes(clBus.toLowerCase())||(c.tel&&c.tel.includes(clBus))).slice(0,5).map(c=>(
-                                  <div key={c.id} onClick={()=>{setClS(c);setClB(c.nom);}}
-                                    style={{padding:'10px 12px',cursor:'pointer',fontSize:13,borderBottom:`1px solid ${C.bo}`}}
-                                    onMouseEnter={e=>e.currentTarget.style.background=C.su}
-                                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                                    <b>{c.nom}</b><span style={{color:C.mu,fontSize:11,marginLeft:8}}>{c.tel} {c.moto}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {clSel&&<div style={{fontSize:12,color:C.gr,marginTop:4,fontWeight:600}}>✓ {clSel.nom}{clSel.moto?' · '+clSel.moto:''}</div>}
-                          </div>
-                        }/>
-                        <FG lbl="Fecha" ch={<Inp v={clFe} s={setClFe} type="date"/>}/>
-                        <FG lbl="Tipo de Servicio" ch={<Sel v={clST} s={setClST} opts={SERVT}/>}/>
-                        <FG lbl="Descripcion"      ch={<Inp v={clSD} s={setClSD} ph="Que se hizo..."/>}/>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                          <FG lbl="Costo ($)"    ch={<Inp v={clSCo} s={setClSCo} type="number"/>}/>
-                          <FG lbl="Cobrado ($)"  ch={<Inp v={clSCb} s={setClSCb} type="number" ph="0" style={{borderColor:C.or}}/>}/>
-                        </div>
-                        <FG lbl="Repuestos usados" ch={<Inp v={clSR} s={setClSR} ph="Ej: Aceite 4T, Filtro..."/>}/>
-                        <Btn onClick={addServCl} col={C.gr} full ch="🔧 Guardar Servicio"/>
-                      </div>
-                    }/>
                   </div>
                   <Card ch={
                     <div>
@@ -1763,8 +1744,9 @@ let _guardarTimer=null;
                       <div style={{height:1,background:C.bo,margin:'12px 0'}}/>
                       <div style={{display:'flex',flexDirection:'column',gap:10}}>
                         {cli.filter(c=>{
-                          if(clFN&&!c.nom.toLowerCase().includes(clFN.toLowerCase())&&!(c.tel&&c.tel.includes(clFN))) return false;
-                          if(clFF&&!c.servicios.some(sv=>sv.fecha===clFF)) return false;
+                          const nrm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+                          if(clFN&&!nrm(c.nom).includes(nrm(clFN))&&!nrm(c.tel||'').includes(nrm(clFN))) return false;
+                          if(clFF&&!c.servicios.some(sv=>(sv.fecha||'').slice(0,10)===clFF)) return false;
                           return true;
                         }).map(c=>{
                           const tot=c.servicios.reduce((a,b)=>a+b.cobrado,0);
@@ -1869,7 +1851,7 @@ let _guardarTimer=null;
             .filter(x=>{ const d=x.r.fecha.slice(0,10); return !(hDe&&d<hDe) && !(hHa&&d>hHa); })
             .filter(x=>{
               if(hTipo==='lavadero') return x.t==='ven'&&x.r.tipo==='lavado';
-              if(hTipo==='repuestos') return x.t==='ven'&&x.r.tipo!=='lavado'&&x.r.tipo!=='empleado' || x.t==='gas';
+              if(hTipo==='repuestos') return x.t==='ven'&&x.r.tipo!=='lavado'&&x.r.tipo!=='empleado';
               if(hTipo==='empleados') return x.t==='ven'&&x.r.tipo==='empleado';
               return true; // todo
             })
@@ -2025,7 +2007,7 @@ let _guardarTimer=null;
                     sEmpProd([...rEmpProd.current,prod]);
                     sVen([...rVen.current,{id:prod.id+'e',fecha:new Date().toISOString(),
                       tipo:'empleado',cliente:'Taller',desc:'🔧 '+epDesc+' - '+epEmp,
-                      total:val2,ganancia:val2,pago:'Efectivo',items:[]}]);
+                      total:val2,ganancia:Math.round(val2*((100-pct)/100)),pago:'Efectivo',items:[]}]);
                     setEpVal('');setEpDesc('');
                     toast2('Produccion de '+fm(val2)+' registrada para '+epEmp,'ok');
                   }} col={C.gr} full ch="✅ Registrar Produccion"/>
@@ -2064,7 +2046,7 @@ let _guardarTimer=null;
                   const pe=empProd.filter(p=>p.empleado===e2.nom);
                   const tH=pe.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
                   const peSemTodo=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin);
-                  const peSem=pe.filter(p=>!p.pagado); // TODO lo pendiente sin filtro de fecha
+                  const peSem=pe.filter(p=>!p.pagado&&p.fecha>=sem.ini&&p.fecha<=sem.fin);
                   const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
@@ -2329,7 +2311,7 @@ let _guardarTimer=null;
                     sLavProd([...rLavProd.current,prod]);
                     sVen([...rVen.current,{id:prod.id+'v',fecha:new Date().toISOString(),
                       tipo:'lavado',cliente:'Lavadero',desc:'🚿 '+lvServ+' - '+lvEmp,
-                      total:val2,ganancia:val2,pago:'Efectivo',items:[]}]);
+                      total:val2,ganancia:Math.round(val2*((100-pctI)/100)),pago:'Efectivo',items:[]}]);
                     setLvVal('');setLvServ('Lavado');
                     toast2('Servicio de '+fm(val2)+' registrado','ok');
                   }} col={C.gr} full ch="✅ Registrar Lavado"/>
@@ -2345,7 +2327,7 @@ let _guardarTimer=null;
                   const pe=lavProd.filter(p=>p.empleado===e2.nom);
                   const tH=pe.filter(p=>p.fecha===h3).reduce((a,b)=>a+b.valor,0);
                   const peSemTodo=pe.filter(p=>p.fecha>=sem.ini&&p.fecha<=sem.fin);
-                  const peSem=pe.filter(p=>!p.pagado); // TODO lo pendiente sin filtro de fecha
+                  const peSem=pe.filter(p=>!p.pagado&&p.fecha>=sem.ini&&p.fecha<=sem.fin);
                   const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
