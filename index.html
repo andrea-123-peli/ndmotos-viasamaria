@@ -907,6 +907,10 @@ let _guardarTimer=null;
                     <span style={{fontSize:11,color:C.mu}}>👷 Por pagar a empleados</span>
                     <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(sPorPagarEmps)}</span>
                   </div>
+                  {/* DEBUG TEMPORAL */}
+                  <div style={{background:'#fee',border:'1px solid red',borderRadius:6,padding:'6px 10px',marginBottom:8,fontSize:11}}>
+                    🔍 DEBUG: Taller={fm(empPendD)} | Lavadero={fm(lavPendD)} | Adelantos=-{fm(adelTotalPend)} | Total={fm(empPendD+lavPendD-adelTotalPend)}
+                  </div>
 
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.15)',borderRadius:10,padding:'12px 16px',border:`2px solid ${C.ye}`,marginBottom:10}}>
                     <div>
