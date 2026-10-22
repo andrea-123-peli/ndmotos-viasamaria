@@ -831,7 +831,7 @@ let _guardarTimer=null;
               const sOtros=gasD.filter(g=>g.tipo!=='Compra Mercancia'&&g.tipo!=='Abono Proveedor'&&g.tipo!=='Nomina').reduce((a,b)=>a+b.monto,0);
               const adelD=adelantos.filter(a=>!a.pagado&&(!fechaCorte||a.fecha>fechaCorte)).reduce((a,b)=>a+b.monto,0);
               const empPendD=empProd.filter(p=>!p.pagado&&(!fechaCorte||p.fecha>fechaCorte)).reduce((a,b)=>a+b.emp60,0);
-              const lavPendD=lavProd.filter(p=>!p.pagado&&(!fechaCorte||p.fecha>fechaCorte)).reduce((a,b)=>a+b.empParte,0);
+              const lavPendD=lavProd.filter(p=>!p.pagado&&(!fechaCorte||p.fecha>fechaCorte)).reduce((a,b)=>a+(b.empParte||0),0);
               const adelTotalPend=adelantos.filter(a=>!a.pagado&&(!fechaCorte||a.fecha>fechaCorte)).reduce((a,b)=>a+b.monto,0);
               const sPorPagarEmps=Math.max(0,empPendD+lavPendD-adelTotalPend);
               const totalSalidas=sCompras+sAbonos+sNomina+sOtros; // adelantos ya incluidos en sOtros
