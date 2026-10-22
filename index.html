@@ -750,6 +750,8 @@ let _guardarTimer=null;
   const gLavPend = lavProd.filter(p=>!p.pagado).reduce((a,b)=>a+(b.empParte||0),0);
   const gAdelPend = adelantos.filter(a=>!a.pagado).reduce((a,b)=>a+b.monto,0);
   const gPorPagarEmps = Math.max(0, gEmpPend + gLavPend - gAdelPend);
+  // DEBUG TEMPORAL
+  if(typeof window!=='undefined'){ window._dbg={gEmpPend,gLavPend,gAdelPend,gPorPagarEmps,empProdLen:empProd.length,pendLen:empProd.filter(p=>!p.pagado).length}; }
 
   const TABS = [
     {id:'resumen',  lbl:'📊 Resumen'},
