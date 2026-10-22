@@ -746,6 +746,10 @@ let _guardarTimer=null;
   const vinv   = inv.reduce((a,p)=>a+p.pc*p.stock,0);
   const credsA = creds.filter(cr=>cr.activo!==false&&cr.pagado<cr.totalDeuda);
   const totDeuda = credsA.reduce((a,b)=>a+(b.totalDeuda-b.pagado),0);
+  const gEmpPend = empProd.filter(p=>!p.pagado).reduce((a,b)=>a+b.emp60,0);
+  const gLavPend = lavProd.filter(p=>!p.pagado).reduce((a,b)=>a+(b.empParte||0),0);
+  const gAdelPend = adelantos.filter(a=>!a.pagado).reduce((a,b)=>a+b.monto,0);
+  const gPorPagarEmps = Math.max(0, gEmpPend + gLavPend - gAdelPend);
 
   const TABS = [
     {id:'resumen',  lbl:'📊 Resumen'},
@@ -905,11 +909,7 @@ let _guardarTimer=null;
                   {/* Por pagar empleados dentro de caja */}
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.08)',borderRadius:8,padding:'8px 12px',marginBottom:12}}>
                     <span style={{fontSize:11,color:C.mu}}>👷 Por pagar a empleados</span>
-                    <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(sPorPagarEmps)}</span>
-                  </div>
-                  {/* DEBUG TEMPORAL */}
-                  <div style={{background:'#fee',border:'1px solid red',borderRadius:6,padding:'6px 10px',marginBottom:8,fontSize:11}}>
-                    🔍 empProd:{empProd.length} lavProd:{lavProd.length} | Taller={empPendD} | Lav={lavPendD} | Adel={adelTotalPend} | Total={empPendD+lavPendD-adelTotalPend}
+                    <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(gPorPagarEmps)}</span>
                   </div>
 
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.15)',borderRadius:10,padding:'12px 16px',border:`2px solid ${C.ye}`,marginBottom:10}}>
