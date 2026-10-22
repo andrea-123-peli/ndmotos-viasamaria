@@ -296,7 +296,7 @@ function App() {
           if(d.meta!=null){rMeta.current=d.meta;setMeta(d.meta);}
           set('herr',rHerr,setHerr);
           set('emps',rEmps,setEmps,toEmpObj);
-          const normProd = arr => arr.map(p=>({pagado:false,...p}));
+          const normProd = arr => arr.map(p=>({...p, pagado: p.pagado===true}));
           set('empProd',rEmpProd,setEmpProd,normProd);
           set('lavEmps',rLavEmps,setLavEmps,toEmpObj);
           set('lavProd',rLavProd,setLavProd,normProd);
@@ -421,9 +421,9 @@ let _guardarTimer=null;
       if(d.meta!=null){ rMeta.current=d.meta; setMeta(d.meta); }
       if(d.herr){ rHerr.current=d.herr; setHerr(d.herr); }
       if(d.emps){ const e2=d.emps.map(e=>typeof e==='string'?{nom:e,pct:60}:e); rEmps.current=e2; setEmps(e2); }
-      if(d.empProd){ const ep=d.empProd.map(p=>({pagado:false,...p})); rEmpProd.current=ep; setEmpProd(ep); }
+      if(d.empProd){ const ep=d.empProd.map(p=>({...p, pagado: p.pagado===true})); rEmpProd.current=ep; setEmpProd(ep); }
       if(d.lavEmps){ const le=d.lavEmps.map(e=>typeof e==='string'?{nom:e,pct:50}:e); rLavEmps.current=le; setLavEmps(le); }
-      if(d.lavProd){ const lp=d.lavProd.map(p=>({pagado:false,...p})); rLavProd.current=lp; setLavProd(lp); }
+      if(d.lavProd){ const lp=d.lavProd.map(p=>({...p, pagado: p.pagado===true})); rLavProd.current=lp; setLavProd(lp); }
       if(d.lavPct!=null){ rLavPct.current=d.lavPct; setLavPct(d.lavPct); }
       if(d.creds){ rCreds.current=d.creds; setCreds(d.creds); }
       if(d.negNit!=null){ rNegNit.current=d.negNit; setNegNit(d.negNit); }
