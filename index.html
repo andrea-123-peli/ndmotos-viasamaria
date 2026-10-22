@@ -296,9 +296,10 @@ function App() {
           if(d.meta!=null){rMeta.current=d.meta;setMeta(d.meta);}
           set('herr',rHerr,setHerr);
           set('emps',rEmps,setEmps,toEmpObj);
-          set('empProd',rEmpProd,setEmpProd);
+          const normProd = arr => arr.map(p=>({pagado:false,...p}));
+          set('empProd',rEmpProd,setEmpProd,normProd);
           set('lavEmps',rLavEmps,setLavEmps,toEmpObj);
-          set('lavProd',rLavProd,setLavProd);
+          set('lavProd',rLavProd,setLavProd,normProd);
           if(d.lavPct!=null){rLavPct.current=d.lavPct;setLavPct(d.lavPct);}
           set('creds',rCreds,setCreds);
           if(d.negNit!=null){rNegNit.current=d.negNit;setNegNit(d.negNit);}
@@ -420,11 +421,15 @@ let _guardarTimer=null;
       if(d.meta!=null){ rMeta.current=d.meta; setMeta(d.meta); }
       if(d.herr){ rHerr.current=d.herr; setHerr(d.herr); }
       if(d.emps){ const e2=d.emps.map(e=>typeof e==='string'?{nom:e,pct:60}:e); rEmps.current=e2; setEmps(e2); }
-      if(d.empProd){ rEmpProd.current=d.empProd; setEmpProd(d.empProd); }
+      if(d.empProd){ const ep=d.empProd.map(p=>({pagado:false,...p})); rEmpProd.current=ep; setEmpProd(ep); }
       if(d.lavEmps){ const le=d.lavEmps.map(e=>typeof e==='string'?{nom:e,pct:50}:e); rLavEmps.current=le; setLavEmps(le); }
-      if(d.lavProd){ rLavProd.current=d.lavProd; setLavProd(d.lavProd); }
+      if(d.lavProd){ const lp=d.lavProd.map(p=>({pagado:false,...p})); rLavProd.current=lp; setLavProd(lp); }
       if(d.lavPct!=null){ rLavPct.current=d.lavPct; setLavPct(d.lavPct); }
       if(d.creds){ rCreds.current=d.creds; setCreds(d.creds); }
+      if(d.negNit!=null){ rNegNit.current=d.negNit; setNegNit(d.negNit); }
+      if(d.adelantos){ rAdelantos.current=d.adelantos; setAdelantos(d.adelantos); }
+      if(d.cajaInicial!=null){ rCajaInicial.current=d.cajaInicial; setCajaInicial(d.cajaInicial); }
+      if(d.cajaCierres){ rCajaCierres.current=d.cajaCierres; setCajaCierres(d.cajaCierres); }
       guardar();
       setImportTxt(''); setShowBackup(false);
       toast2('Datos importados correctamente','ok');
@@ -474,29 +479,14 @@ let _guardarTimer=null;
     // Si tiene tecnico, el costo real = porcentaje del tecnico (para que ganancia = porcentaje del negocio)
     const pcReal=vTecnico&&pctPre>0?Math.round(pv*(pctPre/100)):pcBase;
     const nomReal2=vTecnico.startsWith('t:')||vTecnico.startsWith('l:')?vTecnico.slice(2):vTecnico;
-    const item={id:'SVC'+uid(),nom:vSD||vST,pv,pc:pcReal,cant:1,sv:true,tecnico:nomReal2};
+    // Guardar datos del tecnico en el item para registrar en produccion al confirmar la venta
+    const esTallerPre=vTecnico.startsWith('t:');
+    const item={id:'SVC'+uid(),nom:vSD||vST,pv,pc:pcReal,cant:1,sv:true,tecnico:nomReal2,
+      _esTaller:vTecnico?esTallerPre:null,
+      _pct:vTecnico?pctPre:null};
     setVI([...vItems,item]);
-    // Si hay tecnico asignado, registrar en produccion del taller
-    if(vTecnico){
-      const esTaller=vTecnico.startsWith('t:');
-      const nomReal=vTecnico.slice(2);
-      if(esTaller){
-        const empObj=emps.find(e=>e.nom===nomReal);
-        const pct=empObj?empObj.pct:60;
-        const prod={id:item.id+'t',fecha:hoy(),empleado:nomReal,
-          servicio:vSD||vST,desc:(vSD||vST),pct,valor:pv,
-          emp60:Math.round(pv*(pct/100)),neg40:Math.round(pv*((100-pct)/100))};
-        sEmpProd([...rEmpProd.current,prod]);
-      } else {
-        const lavObj=lavEmps.find(e=>e.nom===nomReal);
-        const pct=lavObj?lavObj.pct:60;
-        const prod={id:item.id+'l',fecha:hoy(),empleado:nomReal,servicio:(vSD||vST),
-          valor:pv,empParte:Math.round(pv*(pct/100)),negParte:Math.round(pv*((100-pct)/100)),pct};
-        sLavProd([...rLavProd.current,prod]);
-      }
-    }
     setVSD('');setVSC('0');setVSP('');setVTecnico('');
-    toast2('Servicio agregado'+(vTecnico?' — registrado en taller de '+vTecnico:''),'ok');
+    toast2('Servicio agregado'+(vTecnico?' ('+nomReal2+')':''),'ok');
   };
 
   const cargarVentaParaEditar = v => {
@@ -507,12 +497,10 @@ let _guardarTimer=null;
     sVen(rVen.current.filter(x=>x.id!==v.id));
     // Quitar produccion asociada en taller/lavadero si tenia
     if(v.items){
-      v.items.forEach(it=>{
-        if(it.sv){
-          sEmpProd(rEmpProd.current.filter(p=>p.id!==it.id+'t'));
-          sLavProd(rLavProd.current.filter(p=>p.id!==it.id+'l'));
-        }
-      });
+      const idsT=v.items.filter(it=>it.sv).map(it=>it.id+'t');
+      const idsL=v.items.filter(it=>it.sv).map(it=>it.id+'l');
+      if(idsT.length) sEmpProd(rEmpProd.current.filter(p=>!idsT.includes(p.id)));
+      if(idsL.length) sLavProd(rLavProd.current.filter(p=>!idsL.includes(p.id)));
     }
     // Cargar los items en el formulario
     setVI(v.items?[...v.items]:[]);
@@ -535,6 +523,26 @@ let _guardarTimer=null;
     const venta={id:uid(),fecha:new Date().toISOString(),tipo:'venta',cliente:vCli2||'Cliente general',clienteEmail:vClObj?vClObj.email:'',clienteNit:vClObj?vClObj.nit:'',clienteEmpresa:vClObj?vClObj.empresa:false,desc,total,ganancia,pago:vPago,items:[...vItems],iva:ivaMonto};
     sInv(newInv);
     sVen([...rVen.current,venta]);
+    // Registrar produccion de empleados al confirmar la venta (no antes, para evitar duplicados)
+    let eprodAct=rEmpProd.current; let lprodAct=rLavProd.current;
+    vItems.forEach(it=>{
+      if(it.sv&&it.tecnico&&it._esTaller!=null){
+        if(it._esTaller){
+          const pct=it._pct||60;
+          const prod={id:it.id+'t',fecha:hoy(),empleado:it.tecnico,
+            servicio:it.nom,desc:it.nom,pct,valor:it.pv,
+            emp60:Math.round(it.pv*(pct/100)),neg40:Math.round(it.pv*((100-pct)/100))};
+          eprodAct=[...eprodAct,prod];
+        } else {
+          const pct=it._pct||60;
+          const prod={id:it.id+'l',fecha:hoy(),empleado:it.tecnico,servicio:it.nom,
+            valor:it.pv,empParte:Math.round(it.pv*(pct/100)),negParte:Math.round(it.pv*((100-pct)/100)),pct};
+          lprodAct=[...lprodAct,prod];
+        }
+      }
+    });
+    if(eprodAct!==rEmpProd.current) sEmpProd(eprodAct);
+    if(lprodAct!==rLavProd.current) sLavProd(lprodAct);
     if(vPago==='Fiado'){
       const fiaId=uid();
       sFia([...rFia.current,{id:fiaId,nombre:vCli2||'Cliente',tel:'',desc,valor:total,fecha:new Date().toISOString(),vence:'',pagado:false,ventaId:venta.id}]);
@@ -556,14 +564,13 @@ let _guardarTimer=null;
     const v=ven.find(x=>x.id===id);
     const newInv=v&&v.items?inv.map(p=>{const it=v.items.find(x=>x.id===p.id);return it&&!it.sv?{...p,stock:p.stock+it.cant}:p;}):inv;
     sInv(newInv); sVen(ven.filter(x=>x.id!==id));
-    // Borrar produccion del empleado asociada a esta venta
+    // Borrar produccion del empleado asociada a esta venta (sv=true sin importar si tiene tecnico)
     if(v&&v.items){
-      v.items.forEach(it=>{
-        if(it.sv&&it.tecnico){
-          sEmpProd(rEmpProd.current.filter(x=>x.id!==it.id+'t'));
-          sLavProd(rLavProd.current.filter(x=>x.id!==it.id+'l'));
-        }
-      });
+      const svIds=v.items.filter(it=>it.sv).map(it=>it.id);
+      const idsT=svIds.map(id=>id+'t');
+      const idsL=svIds.map(id=>id+'l');
+      sEmpProd(rEmpProd.current.filter(x=>!idsT.includes(x.id)));
+      sLavProd(rLavProd.current.filter(x=>!idsL.includes(x.id)));
     }
     toast2('Venta eliminada','info');
   };
@@ -708,13 +715,15 @@ let _guardarTimer=null;
   const [adelFecha,setAdelFecha]=useState(''); const [epNomNuevo,setEpNomNuevo]=useState('');
   const [epDesc,setEpDesc]=useState(''); const [epVal,setEpVal]=useState('');
   const [epFecha,setEpFecha]=useState(''); const [epFiltro,setEpFiltro]=useState('');
-  const [epFDe,setEpFDe]=useState(''); const [epFHa,setEpFHa]=useState('');
+  const [epFDe,setEpFDe]=useState(()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01';});
+  const [epFHa,setEpFHa]=useState(()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(new Date(d.getFullYear(),d.getMonth()+1,0).getDate());});
 
   // ── FORMULARIO LAVADERO ──
   const [lvEmp,setLvEmp]=useState(''); const [lvEmpNuevo,setLvEmpNuevo]=useState('');
   const [lvServ,setLvServ]=useState('Lavado'); const [lvVal,setLvVal]=useState('');
   const [lvFecha,setLvFecha]=useState(''); const [lvFiltroEmp,setLvFiltroEmp]=useState('');
-  const [lvFDe,setLvFDe]=useState(''); const [lvFHa,setLvFHa]=useState('');
+  const [lvFDe,setLvFDe]=useState(()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01';});
+  const [lvFHa,setLvFHa]=useState(()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(new Date(d.getFullYear(),d.getMonth()+1,0).getDate());});
   const [showStockModal,setShowStockModal]=useState(false);
   const [ivaPct,setIvaPct]=useState(19);
   const [ivaOn,setIvaOn]=useState(false);
@@ -896,7 +905,7 @@ let _guardarTimer=null;
                   {/* Por pagar empleados dentro de caja */}
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.08)',borderRadius:8,padding:'8px 12px',marginBottom:12}}>
                     <span style={{fontSize:11,color:C.mu}}>👷 Por pagar a empleados</span>
-                    <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(Math.max(0,empProd.filter(p=>p.pagado!==true).reduce((a,b)=>a+(b.emp60||0),0)+lavProd.filter(p=>p.pagado!==true).reduce((a,b)=>a+(b.empParte||0),0)))}</span>
+                    <span style={{fontSize:14,fontWeight:800,color:C.or}}>{fm(sPorPagarEmps)}</span>
                   </div>
 
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(251,191,36,.15)',borderRadius:10,padding:'12px 16px',border:`2px solid ${C.ye}`,marginBottom:10}}>
@@ -2125,7 +2134,6 @@ let _guardarTimer=null;
                                 </div>
                               </div>
                               <Btn sm col={C.gr} onClick={()=>{
-                                // Produccion lavadero de esta semana
                                 sEmp([...rEmp.current,{id:uid(),fecha:hoy(),nombre:e2.nom,cargo:'Taller',periodo:sem.ini+' al '+sem.fin,monto:pagoReal,pago:'Efectivo'}]);
                                 sEmpProd(rEmpProd.current.map(p=>p.empleado===e2.nom&&!p.pagado?{...p,pagado:true}:p));
                                 sAdelantos(rAdelantos.current.map(a=>a.nom===e2.nom&&!a.pagado?{...a,pagado:true}:a));
