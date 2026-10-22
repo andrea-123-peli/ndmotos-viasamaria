@@ -2063,8 +2063,9 @@ let _guardarTimer=null;
                   const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
-                  // Solo lo pendiente para calcular pago
-                  const pagoSem=peSem.reduce((a,b)=>a+(b.emp60||Math.round(b.valor*(b.pct||e2.pct)/100)),0);
+                  // Todo lo pendiente (no solo semana)
+                  const peTodo=pe.filter(p=>!p.pagado);
+                  const pagoSem=peTodo.reduce((a,b)=>a+(b.emp60||Math.round(b.valor*(b.pct||e2.pct)/100)),0);
                   return (
                     <div key={e2.nom} style={{background:C.ca,border:`1px solid ${C.bo}`,borderLeft:`4px solid ${C.bl}`,borderRadius:10,padding:14,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
@@ -2121,10 +2122,10 @@ let _guardarTimer=null;
                             <div style={{background:'rgba(6,182,212,.1)',border:`1px solid ${C.cy}`,borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                               <div>
                                 <div style={{fontSize:11,color:C.cy,fontWeight:700}}>💰 Pago a {e2.nom}</div>
-                                <div style={{fontSize:12,color:C.mu}}>Semana del {sem.ini} al {sem.fin}</div>
+                                <div style={{fontSize:12,color:C.mu}}>Todo lo pendiente por pagar</div>
                                 <div style={{background:C.su,borderRadius:8,padding:'8px 12px',marginBottom:8}}>
                                   <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}>
-                                    <span style={{color:C.mu}}>🔧 Produccion semana ({e2.pct}% de {fm(tS)})</span>
+                                    <span style={{color:C.mu}}>🔧 Produccion pendiente ({e2.pct}%)</span>
                                     <span style={{color:C.gr,fontWeight:700}}>{fm(pagoSem)}</span>
                                   </div>
                                   {totalAdel>0&&<div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3,borderTop:`1px solid ${C.bo}`,paddingTop:4}}>
@@ -2343,8 +2344,9 @@ let _guardarTimer=null;
                   const tS=peSemTodo.reduce((a,b)=>a+b.valor,0); // total semana (pagado o no)
                   const tM=pe.filter(p=>p.fecha.slice(0,7)===mes).reduce((a,b)=>a+b.valor,0);
                   const tT=pe.reduce((a,b)=>a+b.valor,0);
-                  // Solo lo pendiente para calcular pago
-                  const pagoSem=peSem.reduce((a,b)=>a+(b.empParte||Math.round(b.valor*(b.pct||e2.pct)/100)),0);
+                  // Todo lo pendiente (no solo semana)
+                  const peTodo=pe.filter(p=>!p.pagado);
+                  const pagoSem=peTodo.reduce((a,b)=>a+(b.empParte||Math.round(b.valor*(b.pct||e2.pct)/100)),0);
                   return (
                     <div key={e2.nom} style={{background:C.ca,border:`1px solid ${C.bo}`,borderLeft:`4px solid ${C.cy}`,borderRadius:10,padding:14}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
@@ -2396,8 +2398,8 @@ let _guardarTimer=null;
                             <div style={{background:'rgba(34,197,94,.1)',border:`1px solid ${C.gr}`,borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                               <div>
                                 <div style={{fontSize:11,color:C.gr,fontWeight:700}}>💰 Pago a {e2.nom}</div>
-                                <div style={{fontSize:12,color:C.mu}}>Semana del {sem.ini} al {sem.fin}</div>
-                                <div style={{fontSize:12,color:C.gr}}>Producción ({e2.pct}%): {fm(pagoSem)}</div>
+                                <div style={{fontSize:12,color:C.mu}}>Todo lo pendiente por pagar</div>
+                                <div style={{fontSize:12,color:C.gr}}>Producción pendiente ({e2.pct}%): {fm(pagoSem)}</div>
                                 {totalAdelL>0&&<div style={{fontSize:12,color:C.re}}>Adelantos: -{fm(totalAdelL)}</div>}
                                 <div style={{fontSize:15,fontWeight:800,color:C.gr}}>A pagar: {fm(pagoRealL)}</div>
                               </div>
