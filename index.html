@@ -303,7 +303,14 @@ function App() {
           if(d.lavPct!=null){rLavPct.current=d.lavPct;setLavPct(d.lavPct);}
           set('creds',rCreds,setCreds);
           if(d.negNit!=null){rNegNit.current=d.negNit;setNegNit(d.negNit);}
-          if(d.adelantos){rAdelantos.current=d.adelantos;setAdelantos(d.adelantos);}
+          if(d.adelantos){
+            // Proteger pagado:true — si el ref local ya tiene un adelanto pagado, no pisarlo
+            const adelMerged = d.adelantos.map(a => {
+              const local = rAdelantos.current.find(x=>x.id===a.id);
+              return {...a, pagado: (local&&local.pagado===true) ? true : a.pagado===true};
+            });
+            rAdelantos.current=adelMerged; setAdelantos(adelMerged);
+          }
           if(d.cajaInicial!=null){rCajaInicial.current=d.cajaInicial;setCajaInicial(d.cajaInicial);}
           if(d.cajaCierres){rCajaCierres.current=d.cajaCierres;setCajaCierres(d.cajaCierres);}
         }
@@ -316,7 +323,8 @@ let _guardarTimer=null;
   const guardar = async patch => {
     clearTimeout(_guardarTimer);
     _guardarTimer=setTimeout(async()=>{
-    const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,adelantos:rAdelantos.current,cajaInicial:rCajaInicial.current,cajaCierres:rCajaCierres.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} },300); };
+    const normAdel = arr => arr.map(a=>({...a, pagado: a.pagado===true}));
+    const data = {inv:rInv.current,ven:rVen.current,gas:rGas.current,com:rCom.current,fia:rFia.current,emp:rEmp.current,cli:rCli.current,meta:rMeta.current,herr:rHerr.current,emps:rEmps.current,empProd:rEmpProd.current,lavEmps:rLavEmps.current,lavProd:rLavProd.current,lavPct:rLavPct.current,creds:rCreds.current,negNit:rNegNit.current,adelantos:normAdel(rAdelantos.current),cajaInicial:rCajaInicial.current,cajaCierres:rCajaCierres.current,...(patch||{})}; const json=JSON.stringify(data); try{localStorage.setItem('ndm_all_local',json);}catch(e){} try{await fetch('https://hdbnuzyzoiwihxrohhbn.supabase.co/rest/v1/ndmotos_data?id=eq.sede1',{method:'PATCH',headers:{'Content-Type':'application/json','apikey':'sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Authorization':'Bearer sb_publishable_qoTLHMnh9nroJTUTBKeOZA_WgMCulnc','Prefer':'return=minimal'},body:JSON.stringify({data,updated_at:new Date().toISOString()})});}catch(e){} },300); };
   
   const sInv    = d => { rInv.current=d;    setInv(d);    guardar({inv:d});    };
   const sVen    = d => { rVen.current=d;    setVen(d);    guardar({ven:d});    };
@@ -492,16 +500,20 @@ let _guardarTimer=null;
   const cargarVentaParaEditar = v => {
     // Restaurar stock de la venta vieja
     const newInv=v.items?inv.map(p=>{const it=v.items.find(x=>x.id===p.id);return it&&!it.sv?{...p,stock:p.stock+it.cant}:p;}):inv;
-    sInv(newInv);
-    // Quitar la venta vieja
-    sVen(rVen.current.filter(x=>x.id!==v.id));
+    const newVenEdit=rVen.current.filter(x=>x.id!==v.id);
+    const patch2={inv:newInv,ven:newVenEdit};
     // Quitar produccion asociada en taller/lavadero si tenia
     if(v.items){
       const idsT=v.items.filter(it=>it.sv).map(it=>it.id+'t');
       const idsL=v.items.filter(it=>it.sv).map(it=>it.id+'l');
-      if(idsT.length) sEmpProd(rEmpProd.current.filter(p=>!idsT.includes(p.id)));
-      if(idsL.length) sLavProd(rLavProd.current.filter(p=>!idsL.includes(p.id)));
+      if(idsT.length){ patch2.empProd=rEmpProd.current.filter(p=>!idsT.includes(p.id)); }
+      if(idsL.length){ patch2.lavProd=rLavProd.current.filter(p=>!idsL.includes(p.id)); }
     }
+    rInv.current=newInv; setInv(newInv);
+    rVen.current=newVenEdit; setVen(newVenEdit);
+    if(patch2.empProd){ rEmpProd.current=patch2.empProd; setEmpProd(patch2.empProd); }
+    if(patch2.lavProd){ rLavProd.current=patch2.lavProd; setLavProd(patch2.lavProd); }
+    guardar(patch2);
     // Cargar los items en el formulario
     setVI(v.items?[...v.items]:[]);
     setVCl(v.cliente==='Cliente general'?'':v.cliente);
@@ -521,8 +533,6 @@ let _guardarTimer=null;
     if(ivaActivo) total=Math.round(subtotalCalc*(1+IVA2));
     const ivaMonto=ivaActivo?(total-subtotalCalc):0;
     const venta={id:uid(),fecha:new Date().toISOString(),tipo:'venta',cliente:vCli2||'Cliente general',clienteEmail:vClObj?vClObj.email:'',clienteNit:vClObj?vClObj.nit:'',clienteEmpresa:vClObj?vClObj.empresa:false,desc,total,ganancia,pago:vPago,items:[...vItems],iva:ivaMonto};
-    sInv(newInv);
-    sVen([...rVen.current,venta]);
     // Registrar produccion de empleados al confirmar la venta (no antes, para evitar duplicados)
     let eprodAct=rEmpProd.current; let lprodAct=rLavProd.current;
     vItems.forEach(it=>{
@@ -541,21 +551,33 @@ let _guardarTimer=null;
         }
       }
     });
-    if(eprodAct!==rEmpProd.current) sEmpProd(eprodAct);
-    if(lprodAct!==rLavProd.current) sLavProd(lprodAct);
     if(vPago==='Fiado'){
       const fiaId=uid();
-      sFia([...rFia.current,{id:fiaId,nombre:vCli2||'Cliente',tel:'',desc,valor:total,fecha:new Date().toISOString(),vence:'',pagado:false,ventaId:venta.id}]);
-      // Marcar la venta con el id del fiado para excluirla de caja hasta que se cobre
       venta.fiaId=fiaId;
     }
-    setTk(venta);
     // Si hay cliente seleccionado, agregar venta a su historial
+    let newCli=rCli.current;
     if(vClObj){
       const tecnicos=[...new Set(vItems.filter(it=>it.tecnico).map(it=>it.tecnico))].join(', ');
-    const serv={id:venta.id,fecha:venta.fecha,desc,total,cobrado:total,rep:desc,tecnico:tecnicos||'',items:[...vItems],tipo:'venta'};
-      sCli(cli.map(c=>c.id===vClObj.id?{...c,servicios:[...( c.servicios||[]),serv]}:c));
+      const serv={id:venta.id,fecha:venta.fecha,desc,total,cobrado:total,rep:desc,tecnico:tecnicos||'',items:[...vItems],tipo:'venta'};
+      newCli=rCli.current.map(c=>c.id===vClObj.id?{...c,servicios:[...(c.servicios||[]),serv]}:c);
     }
+    // Construir el patch completo para un único guardar()
+    const newVen=[...rVen.current,venta];
+    const patch={inv:newInv,ven:newVen};
+    if(eprodAct!==rEmpProd.current) patch.empProd=eprodAct;
+    if(lprodAct!==rLavProd.current) patch.lavProd=lprodAct;
+    if(venta.fiaId) patch.fia=[...rFia.current,{id:venta.fiaId,nombre:vCli2||'Cliente',tel:'',desc,valor:total,fecha:new Date().toISOString(),vence:'',pagado:false,ventaId:venta.id}];
+    if(newCli!==rCli.current) patch.cli=newCli;
+    // Actualizar todos los refs y estados de una sola vez
+    rInv.current=newInv; setInv(newInv);
+    rVen.current=newVen; setVen(newVen);
+    if(patch.empProd){ rEmpProd.current=patch.empProd; setEmpProd(patch.empProd); }
+    if(patch.lavProd){ rLavProd.current=patch.lavProd; setLavProd(patch.lavProd); }
+    if(patch.fia){ rFia.current=patch.fia; setFia(patch.fia); }
+    if(patch.cli){ rCli.current=patch.cli; setCli(patch.cli); }
+    guardar(patch);
+    setTk(venta);
     setVI([]);setVB('');setVS(null);setVC('1');setVPr('');setVCl('');setVClObj(null);setVTecnico('');setEditVenta(null);setVDNom('');setVDPc('');setVDPv('');
     toast2('Venta de '+fm(total)+' registrada','ok');
   };
@@ -563,15 +585,21 @@ let _guardarTimer=null;
   const borrarVenta = id => {
     const v=ven.find(x=>x.id===id);
     const newInv=v&&v.items?inv.map(p=>{const it=v.items.find(x=>x.id===p.id);return it&&!it.sv?{...p,stock:p.stock+it.cant}:p;}):inv;
-    sInv(newInv); sVen(ven.filter(x=>x.id!==id));
+    const newVen=ven.filter(x=>x.id!==id);
+    rInv.current=newInv; setInv(newInv);
+    rVen.current=newVen; setVen(newVen);
     // Borrar produccion del empleado asociada a esta venta (sv=true sin importar si tiene tecnico)
+    const patch3={inv:newInv,ven:newVen};
     if(v&&v.items){
       const svIds=v.items.filter(it=>it.sv).map(it=>it.id);
       const idsT=svIds.map(id=>id+'t');
       const idsL=svIds.map(id=>id+'l');
-      sEmpProd(rEmpProd.current.filter(x=>!idsT.includes(x.id)));
-      sLavProd(rLavProd.current.filter(x=>!idsL.includes(x.id)));
+      const nEP=rEmpProd.current.filter(x=>!idsT.includes(x.id));
+      const nLP=rLavProd.current.filter(x=>!idsL.includes(x.id));
+      if(nEP.length!==rEmpProd.current.length){ patch3.empProd=nEP; rEmpProd.current=nEP; setEmpProd(nEP); }
+      if(nLP.length!==rLavProd.current.length){ patch3.lavProd=nLP; rLavProd.current=nLP; setLavProd(nLP); }
     }
+    guardar(patch3);
     toast2('Venta eliminada','info');
   };
 
@@ -681,8 +709,11 @@ let _guardarTimer=null;
     const cob=parseFloat(clSCb);
     if(!cob) return toast2('Ingresa el valor cobrado','err');
     const serv={id:uid(),fecha:clFe,tipo:clST,desc:clSD||clST,costo:parseFloat(clSCo)||0,cobrado:cob,rep:clSR};
-    sCli(cli.map(c=>c.id===clSel.id?{...c,servicios:[...c.servicios,serv]}:c));
-    sVen([...rVen.current,{id:uid(),fecha:new Date(clFe+'T12:00:00').toISOString(),tipo:'venta',cliente:clSel.nom,desc:'🔧 '+clST+' - '+clSel.nom,total:cob,ganancia:cob-(parseFloat(clSCo)||0),pago:'Efectivo',items:[]}]);
+    const newCli2=rCli.current.map(c=>c.id===clSel.id?{...c,servicios:[...c.servicios,serv]}:c);
+    const newVen2=[...rVen.current,{id:uid(),fecha:new Date(clFe+'T12:00:00').toISOString(),tipo:'venta',cliente:clSel.nom,desc:'🔧 '+clST+' - '+clSel.nom,total:cob,ganancia:cob-(parseFloat(clSCo)||0),pago:'Efectivo',items:[]}];
+    rCli.current=newCli2; setCli(newCli2);
+    rVen.current=newVen2; setVen(newVen2);
+    guardar({cli:newCli2,ven:newVen2});
     setClSD('');setClSCb('');setClSR('');setClSCo('0');setClB('');setClS(null);
     toast2('Servicio registrado','ok');
   };
@@ -1408,8 +1439,11 @@ let _guardarTimer=null;
                                 <Btn sm col={C.gr} onClick={()=>{
                                     const abono=parseFloat(crPagoMonto)||0;
                                     if(!abono) return toast2('Ingresa el monto','err');
-                                    sCreds(creds.map(x=>x.id===cr.id?{...x,pagado:Math.min(x.pagado+abono,x.totalDeuda),pagos:[...x.pagos,{fecha:hoy(),monto:abono}]}:x));
-                                    sGas([...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Abono Proveedor',desc:'Abono a '+cr.proveedor+' — '+cr.nom,monto:abono,pago:'Efectivo'}]);
+                                    const newCreds=creds.map(x=>x.id===cr.id?{...x,pagado:Math.min(x.pagado+abono,x.totalDeuda),pagos:[...x.pagos,{fecha:hoy(),monto:abono}]}:x);
+                                    const newGas=[...rGas.current,{id:uid(),fecha:new Date().toISOString(),tipo:'Abono Proveedor',desc:'Abono a '+cr.proveedor+' — '+cr.nom,monto:abono,pago:'Efectivo'}];
+                                    rCreds.current=newCreds; setCreds(newCreds);
+                                    rGas.current=newGas; setGas(newGas);
+                                    guardar({creds:newCreds,gas:newGas});
                                     setCrPagoMonto('');setCrPagoId('');
                                     toast2('Abono de '+fm(abono)+' registrado','ok');
                                   }} ch="💰 Abonar"/>
@@ -2017,10 +2051,13 @@ let _guardarTimer=null;
                     const prod={id:uid(),fecha:epFecha||hoy(),empleado:epEmp,
                       servicio:epDesc.trim(),desc:epDesc.trim(),pct,valor:val2,
                       emp60:Math.round(val2*(pct/100)),neg40:Math.round(val2*((100-pct)/100))};
-                    sEmpProd([...rEmpProd.current,prod]);
-                    sVen([...rVen.current,{id:prod.id+'e',fecha:new Date().toISOString(),
+                    const newEmpProd=[...rEmpProd.current,prod];
+                    const newVenEp=[...rVen.current,{id:prod.id+'e',fecha:new Date().toISOString(),
                       tipo:'empleado',cliente:'Taller',desc:'🔧 '+epDesc+' - '+epEmp,
-                      total:val2,ganancia:Math.round(val2*((100-pct)/100)),pago:'Efectivo',items:[]}]);
+                      total:val2,ganancia:Math.round(val2*((100-pct)/100)),pago:'Efectivo',items:[]}];
+                    rEmpProd.current=newEmpProd; setEmpProd(newEmpProd);
+                    rVen.current=newVenEp; setVen(newVenEp);
+                    guardar({empProd:newEmpProd,ven:newVenEp});
                     setEpVal('');setEpDesc('');
                     toast2('Produccion de '+fm(val2)+' registrada para '+epEmp,'ok');
                   }} col={C.gr} full ch="✅ Registrar Produccion"/>
@@ -2225,7 +2262,7 @@ let _guardarTimer=null;
                                 <TD style={{fontWeight:700}} ch={fm(p.valor)}/>
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.emp60)+' ('+p.pct+'%)'}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(p.neg40)+' ('+(100-p.pct)+'%)'}/>
-                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;sEmpProd(empProd.filter(x=>x.id!==p.id));sVen(ven.filter(v=>v.id!==p.id+'e'));toast2('Eliminado','info');}} ch="🗑"/>}/>
+                                <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro?'))return;const nEP=empProd.filter(x=>x.id!==p.id);const nVD=ven.filter(v=>v.id!==p.id+'e');rEmpProd.current=nEP;setEmpProd(nEP);rVen.current=nVD;setVen(nVD);guardar({empProd:nEP,ven:nVD});toast2('Eliminado','info');}} ch="🗑"/>}/>
                               </tr>
                             ))}
                             {!fil.length&&<tr><td colSpan={7} style={{textAlign:'center',padding:28,color:C.mu}}>Sin producciones para este filtro</td></tr>}
@@ -2321,10 +2358,13 @@ let _guardarTimer=null;
                     const pctI=lavEmpObj?lavEmpObj.pct:lavPct;
                     const prod={id:uid(),fecha:lvFecha||hoy(),empleado:lvEmp,servicio:lvServ.trim(),
                       valor:val2,empParte:Math.round(val2*(pctI/100)),negParte:Math.round(val2*((100-pctI)/100)),pct:pctI};
-                    sLavProd([...rLavProd.current,prod]);
-                    sVen([...rVen.current,{id:prod.id+'v',fecha:new Date().toISOString(),
+                    const newLavProd=[...rLavProd.current,prod];
+                    const newVenLv=[...rVen.current,{id:prod.id+'v',fecha:new Date().toISOString(),
                       tipo:'lavado',cliente:'Lavadero',desc:'🚿 '+lvServ+' - '+lvEmp,
-                      total:val2,ganancia:Math.round(val2*((100-pctI)/100)),pago:'Efectivo',items:[]}]);
+                      total:val2,ganancia:Math.round(val2*((100-pctI)/100)),pago:'Efectivo',items:[]}];
+                    rLavProd.current=newLavProd; setLavProd(newLavProd);
+                    rVen.current=newVenLv; setVen(newVenLv);
+                    guardar({lavProd:newLavProd,ven:newVenLv});
                     setLvVal('');setLvServ('Lavado');
                     toast2('Servicio de '+fm(val2)+' registrado','ok');
                   }} col={C.gr} full ch="✅ Registrar Lavado"/>
@@ -2469,8 +2509,11 @@ let _guardarTimer=null;
                                 <TD style={{color:C.gr,fontWeight:700}} ch={fm(p.empParte)+' ('+p.pct+'%)'}/>
                                 <TD style={{color:C.or,fontWeight:700}} ch={fm(p.negParte)+' ('+(100-p.pct)+'%)'}/>
                                 <TD ch={<Btn sm col={C.re} onClick={()=>{if(!confirm('¿Seguro que deseas eliminar este registro?'))return;
-                                  sLavProd(rLavProd.current.filter(x=>x.id!==p.id));
-                                  sVen(ven.filter(v=>v.id!==p.id+'v'));
+                                  const nLP=rLavProd.current.filter(x=>x.id!==p.id);
+                                  const nVL=ven.filter(v=>v.id!==p.id+'v');
+                                  rLavProd.current=nLP; setLavProd(nLP);
+                                  rVen.current=nVL; setVen(nVL);
+                                  guardar({lavProd:nLP,ven:nVL});
                                   toast2('Eliminado','info');
                                 }} ch="🗑"/>}/>
                               </tr>
@@ -2559,10 +2602,12 @@ let _guardarTimer=null;
               if(!monto) return toast2('Ingresa el monto','err');
               const nuevoAdel={id:uid(),nom:adelModal.nom,tipo:adelModal.tipo,
                 fecha:adelFecha||hoy(),desc:adelDesc||'Adelanto',monto,pagado:false};
-              sAdelantos([...rAdelantos.current,nuevoAdel]);
-              // Registrar adelanto en nomina para historial
-              sEmp([...rEmp.current,{id:nuevoAdel.id+'e',fecha:nuevoAdel.fecha,nombre:nuevoAdel.nom,
-                cargo:'Adelanto',periodo:nuevoAdel.fecha,monto,pago:'Efectivo'}]);
+              const newAdel=[...rAdelantos.current,nuevoAdel];
+              const newEmp=[...rEmp.current,{id:nuevoAdel.id+'e',fecha:nuevoAdel.fecha,nombre:nuevoAdel.nom,
+                cargo:'Adelanto',periodo:nuevoAdel.fecha,monto,pago:'Efectivo'}];
+              rAdelantos.current=newAdel; setAdelantos(newAdel);
+              rEmp.current=newEmp; setEmp(newEmp);
+              guardar({adelantos:newAdel,emp:newEmp});
               setAdelModal(null);
               toast2('Adelanto de '+fm(monto)+' registrado y descontado de caja','ok');
             }} col={C.ye} style={{flex:1,justifyContent:'center'}} ch="💰 Registrar Adelanto"/>
